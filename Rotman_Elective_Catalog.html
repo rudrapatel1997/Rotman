@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<title>Rotman Elective Catalog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky toolbar (search, area chips, shortlist counter) above a two-column list of courses grouped by area. */
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --fg: #172033;
+  --muted: #5b667c;
+  --line: #dbe0ea;
+  --accent: #1e3a6e;
+  --accent-soft: #e4ebf7;
+  --accent-fg: #ffffff;
+  --star: #b7791f;
+  --warn-bg: #fdecea;
+  --warn-fg: #9b1c1c;
+  --ok-bg: #e6f4ea;
+  --ok-fg: #1b5e32;
+  --k1: #1e3a6e; --k1fg: #ffffff; --k2: #8a5a12; --k2fg: #ffffff; --k3: #1b6b5a; --k3fg: #ffffff;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 0 56px; }
+.wrap { max-width: 1040px; margin-inline: auto; }
+header { padding-block: 32px 20px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0 0 8px; text-wrap: balance; letter-spacing: -0.01em; }
+.sub { color: var(--muted); max-width: 62ch; margin: 0; }
+.toolbar { position: static; background: var(--bg); padding-block: 12px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#q { flex: 1 1 220px; min-width: 0; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); }
+#q:focus-visible, .chip:focus-visible, .star:focus-visible, .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme { font: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip { font: inherit; font-size: 13px; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.chip .n { font-family: var(--mono); font-size: 11px; opacity: .7; margin-left: 4px; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+.pill { font-family: var(--mono); font-size: 12px; padding: 3px 9px; border-radius: 4px; background: var(--accent-soft); color: var(--fg); }
+.pill.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.pill.warn { background: var(--warn-bg); color: var(--warn-fg); }
+section.area { margin-top: 32px; }
+section.area h2 { font-family: var(--display); font-size: 22px; margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+section.area h2 .range { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--muted); }
+.prereq { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
+.list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 0 24px; list-style: none; padding: 0; margin: 0; }
+.list li { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--line); min-width: 0; }
+.code { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: none; width: 70px; }
+.title { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; background: var(--accent-soft); color: var(--fg); flex: none; }
+.tag.note { background: var(--warn-bg); color: var(--warn-fg); }
+.star { flex: none; width: 32px; height: 32px; border: 0; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; border-radius: 6px; }
+.star[aria-pressed="true"] { color: var(--star); }
+.star:disabled { opacity: .25; cursor: default; }
+.global-note { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 12px 0 4px; font-size: 14px; display: grid; gap: 6px; }
+.global-note p { margin: 0; }
+.sub-h { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 2px; font-weight: 600; }
+.empty { color: var(--muted); padding: 28px 0; }
+.lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; margin-right: 2px; }
+.eve { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; margin-left: 4px; }
+.eve input { width: 16px; height: 16px; accent-color: var(--accent); }
+.badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.b { font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--accent); }
+.b.up, .b.now { background: var(--accent); color: var(--accent-fg); }
+.b.past { background: transparent; color: var(--muted); border-color: var(--line); }
+.b.x { text-decoration: line-through; opacity: .6; }
+.b.none { border-style: dashed; border-color: var(--line); color: var(--muted); background: transparent; }
+.det { margin: 4px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--muted); display: grid; gap: 1px; }
+.det .e { color: var(--ok-fg); background: var(--ok-bg); border-radius: 3px; padding: 0 5px; font-size: 11px; margin-left: 4px; }
+.det .cx { color: var(--warn-fg); background: var(--warn-bg); border-radius: 3px; padding: 0 5px; font-size: 11px; margin-left: 4px; }
+.sel { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); max-width: 100%; min-width: 0; }
+.sel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.b.em { background: transparent; border-color: var(--line); color: var(--muted); font-family: var(--body); }
+.b.em.hl { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); }
+.ebox { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-top: 18px; display: grid; gap: 8px; }
+.ebox h3 { font-family: var(--display); font-size: 18px; margin: 0; }
+.ebox p { margin: 0; font-size: 14px; }
+.ebox .muted { color: var(--muted); font-size: 13px; }
+.pl-rule { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-top: 16px; display: grid; gap: 8px; max-width: 80ch; }
+.pl-rule p { margin: 0; font-size: 14px; }
+.pl-cards { display: grid; gap: 16px; margin-top: 8px; }
+.pl-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+.pl-card h3 { font-family: var(--display); font-size: 17px; margin: 0; }
+.pl-card p { margin: 0; font-size: 14px; }
+.muted { color: var(--muted); font-size: 13px; }
+.pgwrap { overflow-x: auto; }
+.pgrid { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 11px; table-layout: fixed; }
+.pgrid th, .pgrid td { border: 1px solid var(--line); text-align: center; padding: 0; }
+.pgrid th { font-weight: 500; color: var(--muted); padding: 3px 0; line-height: 1.2; }
+.pgrid th.rl { width: 72px; text-align: left; padding-left: 6px; }
+.pgrid td { height: 26px; font-family: var(--mono); font-weight: 500; }
+.pgrid .we { background: var(--accent-soft); }
+.pgrid td.c0 { background: var(--k1); color: var(--k1fg); }
+.pgrid td.c1 { background: var(--k2); color: var(--k2fg); }
+.pgrid td.c2 { background: var(--k3); color: var(--k3fg); }
+.pgrid td.cf { background: var(--warn-bg); color: var(--warn-fg); font-weight: 700; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+.sw.c0 { background: var(--k1); } .sw.c1 { background: var(--k2); } .sw.c2 { background: var(--k3); }
+.ptable { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+.ptable th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.ptable th, .ptable td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.pwrap { overflow-x: auto; }
+.picker { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 8px 0 12px; }
+.picker label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.picker input { width: 16px; height: 16px; accent-color: var(--accent); }
+.ttl { font: inherit; background: none; border: 0; padding: 0; color: var(--fg); text-align: left; cursor: pointer; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+.ttl:hover { color: var(--accent); text-decoration-style: solid; }
+.ttl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(8, 12, 22, .62); display: flex; align-items: flex-start; justify-content: center; padding: 24px 12px; overflow-y: auto; }
+.mbox { background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; width: 100%; max-width: 780px; padding: 22px 22px 26px; position: relative; display: grid; gap: 14px; margin-block: auto; }
+.mbox h2 { font-family: var(--display); font-size: 24px; line-height: 1.15; margin: 0 40px 0 0; text-wrap: balance; }
+.mx { position: absolute; top: 14px; right: 14px; font: inherit; font-size: 13px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); cursor: pointer; }
+.mx:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.msub { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.msec h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 4px; font-weight: 600; }
+.msec p { margin: 0; font-size: 14.5px; }
+.mgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 14px 24px; }
+.gr { display: grid; gap: 6px; }
+.gr .it { display: grid; grid-template-columns: minmax(0, 1fr) 54px; gap: 2px 10px; font-size: 13.5px; align-items: baseline; }
+.gr .it .nm { overflow-wrap: anywhere; }
+.gr .it .wt { font-family: var(--mono); text-align: right; }
+.gr .it .br { grid-column: 1 / -1; height: 6px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; }
+.gr .it .br i { display: block; height: 100%; background: var(--accent); }
+.gr .it .nt { grid-column: 1 / -1; color: var(--muted); font-size: 12px; margin-top: -1px; }
+.mfoot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+.mfoot a { color: var(--accent); }
+.mstar { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px; background: transparent; color: var(--fg); cursor: pointer; }
+.mstar[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.mstar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tabs { gap: 0; border-bottom: 1px solid var(--line); margin-bottom: -4px; }
+.tab { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 18px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); cursor: pointer; }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.gwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); margin-top: 18px; }
+.ginner { min-width: 1120px; }
+.g-row { display: grid; grid-template-columns: 250px 1fr; }
+.g-label { position: sticky; left: 0; z-index: 2; background: var(--surface); padding: 5px 10px; font-size: 13px; line-height: 1.25; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.g-label .code { width: auto; font-size: 11px; }
+.g-label .t { overflow-wrap: anywhere; }
+.g-track { position: relative; height: 38px; border-bottom: 1px solid var(--line); background-color: var(--surface); }
+.g-group { position: sticky; left: 0; background: var(--accent-soft); font-family: var(--display); font-weight: 700; font-size: 14px; padding: 6px 10px; grid-column: 1 / -1; border-bottom: 1px solid var(--line); }
+.g-group span { font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 8px; }
+.g-head .g-label { background: var(--surface); }
+.g-head .g-track { height: 24px; }
+.g-head.months .g-track { height: 22px; }
+.g-head.months .g-label, .g-head.bands .g-label { border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.mlab { position: absolute; top: 3px; font-family: var(--mono); font-size: 11px; color: var(--muted); padding-left: 4px; }
+.band { position: absolute; top: 3px; height: 18px; border-radius: 4px; font-size: 11px; line-height: 18px; text-align: center; overflow: hidden; white-space: nowrap; background: var(--accent-soft); color: var(--fg); }
+.band.up { background: var(--accent); color: var(--accent-fg); }
+.band.now { background: var(--accent); color: var(--accent-fg); outline: 2px solid var(--star); outline-offset: 1px; }
+.bar { position: absolute; top: 8px; height: 22px; border-radius: 4px; font-size: 11px; line-height: 20px; padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border: 1px solid var(--accent); }
+.bar.ev { background: var(--accent); color: var(--accent-fg); }
+.bar.day { background: var(--accent-soft); color: var(--fg); }
+.bar.past { background: transparent; color: var(--muted); border: 1px dashed var(--muted); }
+.bar.x { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line) 4px 8px); color: var(--muted); text-decoration: line-through; border-color: var(--muted); }
+.bar.dim { opacity: .22; }
+.gleg { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12.5px; color: var(--muted); margin-top: 12px; align-items: center; }
+.gleg .bar { position: static; display: inline-block; width: 44px; height: 16px; vertical-align: middle; margin-right: 6px; padding: 0; }
+.legend { font-size: 13px; color: var(--muted); margin-top: 14px; display: grid; gap: 4px; max-width: 80ch; }
+footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+footer a { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .chip, .star { transition: background .12s, color .12s; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Rotman Elective Catalog</h1>
+    <p class="sub">Every MBA elective in the catalog, grouped by area, with when each one runs. Star courses to build your list of 10.</p>
+    <div class="legend">
+      <div>Solid badges are terms Rotman has scheduled: Fall 2026 (running now), Winter intensive and Spring 2027. Outlined badges ran earlier in 2026 and are the best guide to Summer and Fall 2027, which Rotman has not published yet. A repeat is likely but not guaranteed.</div>
+      <div>Evening or weekend means weekday classes starting 18:00 or later, or weekend classes. Sections at 16:00 or earlier on a weekday are not marked.</div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="row tabs" role="tablist" aria-label="View">
+      <button class="tab" type="button" role="tab" data-view="list" aria-selected="true">Catalog</button>
+      <button class="tab" type="button" role="tab" data-view="timeline" aria-selected="false">Timeline</button>
+      <button class="tab" type="button" role="tab" data-view="plan" aria-selected="false">Plan</button>
+    </div>
+    <div class="row" data-f>
+      <input id="q" type="search" placeholder="Search by title or code, e.g. derivatives or RSM2504" aria-label="Search courses" autocomplete="off">
+    </div>
+    <div class="row" data-f id="chips" role="group" aria-label="Filter by area"></div>
+    <div class="row" data-f role="group" aria-label="Filter by term"><span class="lbl">Offered</span><span class="row" id="terms" style="gap:8px"></span><label class="eve" for="eve"><input type="checkbox" id="eve"> Evening or weekend only</label></div>
+    <div class="row" data-f role="group" aria-label="Emphasis and sort"><label class="lbl" for="emph">Emphasis</label><select class="sel" id="emph"></select><label class="lbl" for="sort" style="margin-left:10px">Sort by</label><select class="sel" id="sort"></select></div>
+    <div class="tally" id="tally" aria-live="polite"></div>
+  </div>
+
+  <main id="out"></main>
+
+  <footer>
+    Source: Rotman registrar pages, read October 8, 2026. Morning/Evening MBA needs 10 electives (5.0 FCE) and counts at most 2 RSM27XX courses toward the degree. Times can change; check the Rotman HUB before enrolling. <a href="https://www.rotman.utoronto.ca/registrar/programs/mba-programs/mba-electives/current-elective-offerings/">Current offerings</a> · <a href="https://www.rotman.utoronto.ca/registrar/programs/mba-programs/mba-electives/elective-course-catalog/">Catalog</a> · <a href="https://www.rotman.utoronto.ca/registrar/programs/mba-programs/mba-electives/global-and-experiential-learning/">Global and experiential</a>
+  </footer>
+</div>
+
+<div class="modal" id="modal" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mt"><button class="mx" id="mclose" type="button">Close</button><div id="mbody" style="display:grid;gap:14px"></div></div></div>
+
+<script>
+var FACTS = /*FACTS_START*/{"2016":{"t":"Spring 2027","ti":"Strategy in the Energy Economy","w":"Jacquelyn Pless, Assistant Professor of Strategic Management","a":"Students interested in working on energy and/or environmental issues in either the private sector (e.g., large incumbent firms, start-ups, consulting firms) or the public sector (e.g., policy...","f":"12 weekly sessions","s":"By the end of this course, students should be able to answer questions such as: how do energy markets work and are market outcomes efficient? How do competition, market power, and scarcity impact energy prices? How do the environmental consequences of energy production and use reshape market outcomes, and how does policy alter incentives, risks, and competitive advantage?","e":"Class Participation 15%; Individual Assignment 15%; Mid-Term Exam 25%; Group Project 20%; Final Exam 25%","r":"Weekly readings provided by the Professor","p":""},"2017":{"t":"Summer 2026","ti":"Pharmaceutical Strategy","w":"Alok Kanti, President – International of Apotex","a":"The course is designed for students aiming to work in the pharmaceutical sector, whether in large firms, start-ups, consulting or other settings.","f":"Course is in-person: May 21, 25, 28; June 4, 8, 11, 15, 18, 22; July 2 from 6 to 9 pm.","s":"The innovation of new medicines, health-care cost pressures, increased scrutiny of the industry, advances in clinical practice and information, and significant litigation has increased the opportunities, risks and competitive intensity in the market.","e":"Class Participation 20%; Learning Journal 30%; Class Prep Assignment 10%; Project: Integrated Strategy for the Brand (Team of 4 people) 40%","r":"Pease see Quercus for readings and cases. Book: Brand Plan Rx: Markus Saba and Hilary Gentile","p":""},"2019":{"t":"Spring 2027","ti":"Corporation 360º","w":"Stefan Dimitriadis, Assistant Professor, Strategic Management","a":"Students with the following interests should take this course: Corporate social responsibility Social impact Strategic and general management","f":"In person.","s":"The impact of corporations’ strategies goes far beyond their own balance sheet, they impact people’s lives, local communities, and the natural environment. Corporations shape the economies and societies we live in.","e":"Class Participation (Individual) 30%; Short Essay (Individual) 20% (Before add/drop date); Final Essay (Individual) 50% (End of course)","r":"To be confirmed.","p":""},"2020":{"t":"Summer intensive 2026","ti":"Health Sector Strategy and Organization","w":"Marlys Christianson, Associate Professor, Organizational Behaviour and Human Resource Management","a":"This course is a Summer 2026 intensive and is open to all 2nd and 3rd year Rotman students. It is also a main course in the Rotman School of Management’s Emphasis in Health Sector Management.","f":"Intensive format, Summer 2026 1:30pm-5pm May 4, 5, 6, 7, 8 (Monday to Friday) May 11. 12, 13, 14 (Monday to Thursady)","s":"The healthcare sector is the single largest economic sector in the world ---- approaching $8 Trillion annually. It is not only huge, but also among the fastest growing sectors in all industrialized economies.","e":"Class contribution and participation 20%; Learning journal 20%; Comparative Systems Paper (2-person groups) Approx 10 pgs 30%; Individual paper 30% (Due approx. one week after last class)","r":"Case Packet Regular scanning of articles in the on-line journals available from Longwoods Publishing http://www.longwoods.com/","p":""},"2021":{"t":"Fall 2026","ti":"Corporate Strategy","w":"Brian Silverman, Professor, Strategic Management, J.Robert S. Prichard and Ann Wilson Chair in Management","a":"This course is suitable for those pursuing careers in general management, strategy consulting, and corporate finance.","f":"12 regular sessions.","s":"In Corporate Strategy, we extend the analysis of business level strategy from RSM1201 to the corporate or multi-business level. You have studied synergies, ownership, and structure (the three pillars of corporate strategy) in your core class. In this class we focus more deeply on these principles to help understand how multi-business unit firms can gain (or lose) an advantage.","e":"Class Participation 10%; Team case/critique Presentation 35%; Team preparation of questions 5%; Final Exam 50% (Exam Period)","r":"Readings package, including cases (no required text).","p":""},"2023":{"t":"Spring 2027","ti":"Strategic Change and Implementation","w":"Laura Doering, Associate Professor, Strategic Management","a":"How do you implement a strategy once it has been formulated? The perspective taken in this course is that all managers require the conceptual frameworks and skills to enact change and implement...","f":"In 2027, Professor Doering will offer the course as a full semester course in the Spring with one meeting per week for 12 weeks.","s":"In this course, we will direct attention to the problems associated with pushing strategy forward in organizations. Senior and Middle Managers are increasingly responsible for managing and resolving competing claims for the organization's limited resources (financial and human). Doing so requires advanced capabilities at managing across functions and business units.","e":"Final project 40%; Learning diary 40%; Class participation 20%","r":"Course reading packet. Each assigned article or chapter will help you address the issues in the corresponding cases.","p":""},"2030":{"t":"Spring 2027","ti":"Canadian Business History","w":"Dimitry Anastakis, Professor, L.R. Wilson/R.J. Currie Chair in Canadian Business History, cross-appointed...","a":"This course is intended for students who may be relatively new to Canada, with little or no background in Canadian history and, also, for students who may have had some prior interest in business and...","f":"12 weekly sessions.","s":"The course mission is to sharpen Rotman students’ abilities to utilize the lessons of the past to be more adept at making decisions that are applicable to contemporary Canada, Canadian business, and global capitalism.","e":"Class Participation 20%; Assignment 1 25% (Week 5); Assignment 2 Plan 10% (Week 9); Assignment 2 45% (Week 12)","r":"","p":""},"2040":{"t":"Fall 2026","ti":"Progress or How Big Things Get Done","w":"Kevin Bryan, Associate Professor, Strategic Management","a":"Much of management involves running organizations in their day-to-day operations more efficiently - how they finance themselves, how to align employees with an organization's goal, and so on.","f":"12 weekly seminars, discussion heavy, requiring ~100 pages of reading each. Students will prepare a term paper as well as the main component of their grade, with original research.","s":"This course is experimental. We are working with leaders in think tanks, private industry, and academic experts on innovation to prepare a reading list which is quite unique - and which we will modify in line with student interests.","e":"Final Paper 100%","r":"Readings given in class.","p":""},"2052":{"t":"Fall 2026","ti":"Management Consulting","w":"Paul Jan, Assistant Professor, Teaching Stream, Part-Time, Operations Management and Statistics","a":"The course is intended for both students interested in management consulting as a career and those interested in corporate problem-solving more generally.","f":"One 2-hour classes weekly on Mondays. The first class of the course will be on September 14th and the last class will be on November 30th.","s":"Strategy consultants help organizations analyze and solve some of their most challenging business problems. These problems are typically ill-defined and cross-functional, with clients frequently holding conflicting views on the situation.","e":"Class Participation 20%; Team project assignments 40%; Individual assignments 40%","r":"There is no textbook. The course package will contain cases and articles and will be available for purchase prior to the course.","p":""},"2054":{"t":"Spring 2027","ti":"Technology Strategy","w":"Alberto Galasso, Professor of Strategic Management at the University of Toronto","a":"This course is suitable for students pursuing management careers in technology-focused organizations, students interested in creating (or investing in) technology startups, and those interested in...","f":"12 regular in person lectures","s":"In this course students will learn how innovation and management of technology can be leveraged to generate and sustain competitive advantage. We will examine how firms’ innovation incentives are shaped by the external environment and by the internal organization of the firm.","e":"Patent analytics report 23%; Case report – team presentation 27%; Online and in class quizzes 15%; Midterm test 35%","r":"Links and references to readings and cases will be provided in the course outline.","p":""},"2057":{"t":"Fall 2026","ti":"Venture Capital Strategy","w":"Brian Silverman, Professor, Strategic Management, J.Robert S. Prichard and Ann Wilson Chair in Management","a":"This course is intended to appeal to students interested in the managing or financing of entrepreneurial ventures, as well as those interested in institutional investing and private equity.","f":"12 regular sessions","s":"This course seeks to train students to evaluate the strategies of venture capital firms, to recognize and evaluate investment opportunities, and to understand the structure and dynamics of entrepreneurial finance.","e":"Class participation 10%; One case write-up 10% (Before class on the relevant date); Problem set 5% (Mid October); Deal negotiation assignment (2-person team, randomly assigned) 5% (Mid October); Evaluation of Startup (5-person team) 35% (Late November); Final exam or final paper 35% (Exam period)","r":"Case and reading packet","p":""},"2058":{"t":"Summer intensive 2026","ti":"Communicating Strategy","w":"Joel Baum, Professor, Strategic Management","a":"For students interested in honing their effectiveness in informal communication and formal professional presentations, both in person and online, in areas including verbal and nonverbal communication...","f":"In Summer 2026, this course will have 8, 3 hour classes.","s":"This course provides second year students with the opportunity to enhance their communication and presentation skills. The specific course objectives are: To increase effectiveness in informal communication and formal presentations, both in person and online, by Using verbal and nonverbal communication skills to create emphasis, intensity, and impact.","e":"Individual Participation 15%; In-class Presentations 35%; Individual Assignments 15% (TBA); Team Case Presentation 35% (TBA)","r":"No textbook. Links to digital readings and videos provided.","p":""},"2059":{"t":"Fall 2026","ti":"Healthcare and Life Sciences Consulting: Field Application Project","w":"Wes Lynah, healthcare transformation executive at Ernst & Young (EY) and consulting leader","a":"This course is designed for students considering careers in consulting, strategy, transformation, digital health, healthcare leadership, or life sciences.","f":"The course is deliberately high-touch: every student works on a live client problem, every team has a dedicated senior consulting coach, and every project receives repeated feedback before the final...","s":"The mission of RSM 2059 is to move students from learning about consulting to performing as consultants. Through a live healthcare or life sciences engagement, students learn to structure an ambiguous problem, work with client stakeholders, gather and analyze evidence, develop a practical recommendation, and influence a real organizational decision.","e":"Faculty and Client Evaluation of Team Performance 40%; Faculty Evaluation of Individual Performance 50%; Teammate Evaluation of Individual Performance 10%","r":"There is no required textbook. Students will receive practical consulting templates, examples, tools, and targeted resources that can be applied...","p":""},"2061":{"t":"Summer 2026","ti":"Strategic Networks","w":"Bill McEvily, Professor, Strategic Management, Jim Fisher Professorship in Leadership Development","a":"This course will be of particular interest to students in the Strategy, Leadership, and Innovation/Entrepreneurship/Business Design emphases or in the Consulting, Leadership & Change Management,...","f":"This course is offered in the intensive format. All sessions will occur over two half days (Fridays) and two full days (Saturdays).","s":"","e":"Class Contribution 20%; Network Audit 30% (1 week after last class); Success Habits for Networking 10% (2 weeks after last class); Networks by Design 40% (3 weeks after last class)","r":"An electronic course packet of cases and readings will be provided.","p":""},"2081":{"t":"Winter intensive 2027","ti":"Social Entrepreneurship","w":"Laura Doering, Associate Professor of Strategic Management","a":"This course is aimed at students who want to learn about organizations (both for-profit and non-profit) that pursue social goals in financially sustainable ways.","f":"Intensive format over 2 weekends January 16/17, 23/24 from 9:00am-4:00pm","s":"In this course, students will learn how entrepreneurs create organizations that address social problems using innovative, sustainable approaches. Students will examine a variety of social venture forms, and consider how such ventures can be evaluated, managed, and financed. Social Entrepreneurship is organized around a live case consulting project.","e":"Class participation 20%; Case analysis 30%; Group presentation 20%; Group report 20%; Team contribution 10%","r":"Links to readings are provided in the course outline. Sample readings include: Martin & Osberg (2007) Stanford Social Innovation Review.","p":""},"2083":{"t":"Summer 2026","ti":"Leading Canadian Business in the Global Context","w":"Christopher Laird, retired Procter & Gamble executive","a":"This course is designed for students seeking a competitive advantage in the job market by learning directly from practicing executives how national differences shape strategy for Canadian...","f":"This is a six-week intensive evening course. Each week consists of two in-person classes, Tuesday and Thursday from 7–9 PM.","s":"To prepare future Canadian leaders to develop winning cross-border strategies, learning directly from executives who have led them in practice. This MBA elective examines how Canada’s unique market structure, institutions, and culture shape business strategy relative to other countries.","e":"Class Participation 20% (Ongoing, graded weekly); Weekly Individual Assignments 30% (Weekly (x6)); Group Synthesis Project 20% (Final Week); Final Exam 30% (July 6th)","r":"Readings will be posted in Quercus prior to each week’s topic, including selected chapters (e.g., CAGE Distance Framework, Chapter 2 from Pankaj...","p":""},"2087":{"t":"Fall 2026","ti":"Strategy Beyond Markets","w":"Kate Odziemkowska, Assistant Professor, Strategic Management","a":"Students interested in understanding firm strategy outside traditional competitive markets. Specifically, students will gain a deep understanding of how firms effectively navigate and influence...","f":"12 weekly session","s":"The course is designed to with the following learning outcomes: Gain fluency in and practice applying fundamental concepts, frameworks and methodologies useful to managers in crafting and executing strategy in non-market contexts Ability to research and recommend feasible solutions, supported by relevant evidence, to a strategic challenge in non-market contexts or with non-market stakeholders...","e":"Bi-weekly writeups 10%; Stakeholder mapping 5% (Week 5); Participation 20%; Team simulation 10% (Week 9); Team presentation 10% (Week 11); Final project (individual and team component) 45% (Exam period)","r":"Course readings will primarily consist of cases, and some conceptual readings. There will also be a simulation in the latter part of the course.","p":""},"2123":{"t":"Winter intensive 2027","ti":"International Business in the World Economy","w":"Bernardo Blum, Professor of Economic Analysis and Policy and Director of the Institute for International...","a":"","f":"While the course is offered 3 times a year, this particular offering takes place during the January intensive period over 2 weekends (January 16, 17, 23 and 24), from 9:00am-4:00pm.","s":"While the course has several themes, at its core is the development of an understanding of the sources of comparative advantage, and the kinds of goods and services that are consistent with these advantages. We develop an understanding of why it is difficult for companies to undertake international trade.","e":"Group Breakouts 10%; Case Solutions: Group Submission 10%; Peer Feedback 10%; Final Group Project 30%; Final Exam – TBD 40%","r":"This course will use a variety of sources that will be made available in a course reading package.","p":""},"2125":{"t":"Spring 2027","ti":"Game Theory and Applications for Management","w":"Heski Bar-Isaac, Professor, Economic Analysis and Policy and Finance","a":"The audience for this course is anyone interested in the fundamental principles that are used in the disciplined and therefore necessarily abstract analysis of general strategic situations that...","f":"12 sessions once a week from January 28 to April 15.","s":"People’s outcomes are affected by their own decisions, and often by the decisions of others. Such situations are known as “games” and game-playing is serious business. Managers frequently play games within their firm (with other divisions and subordinates) as well as outside the firm (with competitors, customers, regulators, and even capital markets.) Governments play games with each other and...","e":"","r":"Readings There is no text for this course, the slides, readings and classes should be self-contained and do not follow any book precisely.","p":""},"2126":{"t":"Winter intensive 2027","ti":"Real Estate Development","w":"Calvin Younger","a":"Students interested in learning about the real estate industry and real estate development, specifically through class discussion and guest speakers.","f":"Class from January 11 to 22, 2027. Last 2 classes used for group presentations.","s":"The purpose of this course is to provide students with a fundamental background and basic skill set to understand the real estate development business and its interrelationships with urban planning. It will provide students with an introduction to the major disciplines and processes related to development, which can provide a basis for the pursuit of a career in the development field or simply an...","e":"Class Participation 10%; Assignment 1 20%; Assignment 2 15%; Assignment 3 15%; Development project – class presentation 15% (Last class); Development project – report 25% (Last class)","r":"A course reader will be provided. There are no required textbooks for the course.","p":""},"2127":{"t":"Summer intensive 2026","ti":"Economic Environment of International Business","w":"Daniel Trefler, Professor, Economic Analysis and Policy, J. Douglas and Ruth Grant Chair in Competitiveness and Prosperity","a":"This course is designed for those interested in international trade issues, including those with a general interest perspective, a policy perspective, and a business perspective.","f":"Intensive format, May 4 to 13, 2026, 18:00 to 21:30 (final exam May 14).","s":"This course will cover the principles of international economics by exploring the business, legal and policy issues of the new Era of De-globalization. Ever wonder why is China so successful? Do we need a Canadian industrial policy? Did Trump make America great again (or is that for his second term)? How do we renegotiate CUSMA and how should we respond to Trump’s weekly attacts on Canada?","e":"First test 15% (First Wednesday of class); Second test 15% (Second Monday of class); Final Exam 40% (Second Thursday of class – May 14); Group report 30% (During exam period)","r":"The course will be based on lecture notes designed by the instructor and simple readings largely from newspapers.","p":""},"2128":{"t":"Fall 2026","ti":"Real Estate Economics","w":"William Strange, Professor, Economic Analysis and Policy, SmartCentres Chair in Real Estate","a":"Real estate matters in every area of business. Real estate assets are a very important part of corporate balance sheets.","f":"Weekly classes, Monday 9:15 to 11:15, Fall 2026.","s":"The course applies economic methods to make students better real estate decision-makers. Topics covered include the determinants of real estate values, the location decisions of households and firms, land use, urban growth and agglomeration, industry clusters, cycles, bubbles, real estate finance, real options, and leasing.","e":"Class participation 10%; Case write-up* 5% (Week 7); Debate write-up* 5% (Week 10); Paper/Presentation* 30% (Week 12); Final 50% (Examination period)","r":"The course will make use of a paperback text (Helsley, Robert W., Urban and Real Estate Economics, Vancouver: UBC Real Estate Division, 2003) and a...","p":""},"2130":{"t":"Spring 2027","ti":"Real Estate Investment","w":"Victor Couture, Associate Professor of Economic Analysis and Policy and the Camrost Felcorp Chair in Real...","a":"Real estate accounts for about one-third of the value of all capital assets globally. An understanding of commercial real estate is important for both investment applications and the provision of...","f":"To emphasize the interaction of theory and practice, academic lectures are supplemented by student presentations, case discussions, and guest lectures.","s":"To help students understand the economics and financial metrics used in the analysis of real estate investments and capital markets; to introduce students to the principal concepts and theories in real estate investment and finance-based investment analysis; and to understand the drivers of a commercial property’s cash flows and value.","e":"Case Study 10%; Midterm 40%; Participation 20%; Term Project 30%","r":"The course uses a textbook, Real Estate Finance & Investments by William Brueggeman and Jeffrey Fisher.","p":""},"2132":{"t":"Summer 2026","ti":"Business and the City","w":"Richard Florida, University Professor, Economic Analysis and Policy","a":"The class is designed for MBA candidates who are pursuing careers in corporate management and strategy, consulting, finance, real estate, and economic and urban development who need to understand how...","f":"This course will run as an intensive format for five-and-a-half hours a day for five days. I will open class with a short lecture to frame the issues we are covering.","s":"A goal of this course will be to ignite your own passion for location, urban development, and cities. This course will provide you with deeper understanding of the role of location decisions in business performance and it will equip you with the knowledge and understanding you need to make better, more informed location decisions for yourself and your family.","e":"Class Participation 15% (Individual); Group Presentations x 3 10% each (Group); Assignment #1 (Due July 20, 2026 at 9:30am) 20% (Individual); Assignment #2 (Due August 5, 2026 at 9:30am) 35% (Individual)","r":"We will read parts of three of my books, The Rise of the Creative Class, Who’s Your City?, and The New Urban Crisis.","p":""},"2198":{"t":"Summer intensive 2026","ti":"Business Government Relations","w":"Bill Morneau, Executive-in-residence at Rotman","a":"An important gap has been identified in the ability of Canadian businesses to interact with government – that is, there is a lack of fluency between business and government.","f":"The class will be offered in intensive format, in person at Rotman, on the following dates: May 4, 5, 6, 7, 8, 11, 12, 13 from 9:00am -12:30pm.","s":"This course explores the dynamic relationship between business and government in Canada, examining the mutual dependencies that shape policy development. Through analysis of political, economic, and social issues, students will gain the knowledge and skills to navigate and critically assess business-government interactions, focusing on communication, negotiation, and collaboration.","e":"Case Solution, Individual 10%; Case Solution, Group 10%; Final Group Project: Paper Submission, PPT, and Final Presentation 30%; Final Exam 50% (Thursday, May 14, 2026 - In person)","r":"The textbook (tentative) is Uneasy Partnership: The Politics of Business and Government in Canada, by Geoffrey Hale University of Toronto Press,...","p":"The course assumes students have an understanding of the key areas in the first year curriculum,..."},"2204":{"t":"Fall intensive 2026","ti":"Taxation and Decision Making","w":"Alexander Edwards, Professor, Accounting, Accounting Area Coordinator","a":"Students aspiring to be decision-makers in the business world should take this course. The course is not intended for future tax preparers, rather it is designed for future business professionals who...","f":"Eight sessions, 1:30 p.m. – 5:00 p.m., from August 31 through September 10.","s":"This course will provide an overview of the income tax system and how it impacts business and investment decisions. The course will focus on developing a student’s ability to identify, understand, and evaluate tax-planning opportunities. The material will focus on tax planning concepts and the effect of taxes on decisions, rather than detailed tax rules and legal research.","e":"Class Participation 25%; Quizzes 45% (September 3rd and 9th); Final Exam 30% (September 11th)","r":"Canadian Income Taxation: Planning and Decision Making, 2025-2026 edition. Current Readings in Taxation. These readings will be posted on Quercus.","p":""},"2206":{"t":"Fall 2026","ti":"Accounting for Entrepreneurs","w":"Matthew Hinton, Assistant Professor, Teaching Stream Part-Time, Accounting","a":"Private companies are a large and important part of the economy. Toronto has become one of the top destinations for entrepreneurs to start their ventures.","f":"12 weekly 2 hour sessions","s":"This course will introduce the accounting tools and develop the accounting skills related to the role of a Chief Financial Officer (CFO) at a private, entrepreneurial company. The structure of the course will follow the life-cycle of a company that begins as a start-up, and will cover the tax, managerial, and financial accounting related issues of key importance at early-stage private companies.","e":"Class Participation 20%; Term Test 20% (Class 6); Group Assignment 25% (Class 11); Final Exam 35% (Exam Period)","r":"Entrepreneurial Finance and Accounting for High-Tech Companies, by Frank Fabozzi","p":"RSM1220H Financial Accounting and Reporting: A Global Perspective RSM1222H Managerial Accounting..."},"2209":{"t":"Spring 2027","ti":"Financial Statement Analysis","w":"Ramy Elitzur, Professor, Accounting","a":"Basically, all MBA students could, and should, take the course. In particular, students interested in careers in consulting, corporate finance, equity research, investment banking, and anybody who...","f":"Weekly interactive presentations, case studies, and analyses of real companies in real time.","s":"The objective of this course is to develop a set of tools for in-depth financial statements analysis and valuation. This course emphasizes the theme of data analytics and the “Accounting Art of War” (paraphrasing Sun Tzu) and extends it.","e":"Group financial statement analysis project (in two instalments) 40%; Participation 10% (NA); Final Exam 50% (During the exam period)","r":"JAMES M. WAHLEN; STEPHEN P. BAGINSKI; MARK BRADSHAW, “Financial Reporting, Financial Statement Analysis, and Valuation - A Strategic Perspective”,...","p":""},"2211":{"t":"Winter intensive 2027","ti":"Business Law","w":"Richard Powers, Associate Professor, Teaching Stream, Organizational Behaviour and Human Resource Management","a":"Students interested in understanding how the legal environment interacts with the business environment.","f":"Eight 3-hour sessions consisting of readings from the required textbook and other handouts provided in class. Guest speakers may be involved in several of the lectures","s":"This course is intended to focus participant’s attention on those areas of law that typically affect a business’s operations. In addition, we will examine those areas of law that reflect on the role of directors and officers of organizations in the profit and not-for-profit sectors. Recent case law provides numerous examples that illustrate the conflicting roles managers often find themselves in.","e":"Class Participation 20%; Midterm Exam 30% (During Class 4); Final Take Home Exam 50%","r":"Smyth, J.E., Soberman, D.A. and Easson, A.J., McGill, S.A. The Law and Business Administration in Canada, 15th Edition (2020).","p":""},"2212":{"t":"Fall 2026","ti":"Business Analysis and Valuation","w":"Francesco Bova, Associate Professor, Accounting","a":"This course is useful for students pursuing a career where one needs to analyze financial statements. This includes those students interested in finance-related professions such as Investment...","f":"","s":"This course will help you analyze and value businesses using financial statements. We will discuss how accounting regulations and managerial discretion influence presented financial statements. You will understand how to interpret financial statements, analyze cash flows, and make judgments about earnings quality.","e":"Class Participation 10%; 4 Case Write-ups 25% for all four in total; Group Project 30% (Due at end of course); Final Exam 35% (Exam Period)","r":"AVAILABLE on Course Webpage: Presentations for class; Excel Spreadsheets; Links to articles from business press; Additional readings.","p":""},"2220":{"t":"Summer 2026","ti":"White Collar Crime: Creative Accounting and Corporate Fraud","w":"Scott Liao, Professor, Accounting, Vice-Dean, Undergraduate and Specialized Programs","a":"This is a case-based course designed for students interested in corporate governance, corporate finance and ethics.","f":"Summer term over two weekends","s":"Based on the case studies we use, students will learn that financial reporting is an important part of managing business for C-suite executives, mostly CEO and CFO. The course is designed for future C-suite executives to understand that financial reporting can either improve firm transparency and increase firm value or can be used opportunistically for private benefits and thus fail the...","e":"Class Participation and Contribution 20%; Group Case Write-up and Discussions 40%; Final Case 40%","r":"","p":"Financial Accounting and Finance 1"},"2300":{"t":"Fall 2026","ti":"Corporate Financing","w":"Sergei Davydenko, Associate Professor, Finance","a":"This is a foundational course in Corporate Finance, designed primarily for students interested in a career in finance, such as bankers, investment bankers, or corporate treasurers.","f":"12 regular sessions","s":"The aim of this course is to help you learn to apply fundamental ideas of financial economics, which you already know from basic finance courses, to problems in the area of corporate finance that reflect the complexities that the real world entails.","e":"Group case studies 40% (Throughout the term); Class participation 20% (Throughout the term); Final exam 40%","r":"Online Course Package, which consists of case studies and supplementary readings","p":""},"2301":{"t":"Spring 2027","ti":"Financial Management","w":"Ting Xu, Assistant Professor of Finance at the Rotman School of Management","a":"In addition to serving students who are looking for careers in non-financial firms, this course also teaches those who will work in financial institutions and financial markets to better understand...","f":"In-person. Two 2-hour sessions per week over 12 weeks.","s":"This course covers financial decision making inside non-financial firms. The goal is to make good decisions for non-financial firms while understanding that obtaining and using capital efficiently is important, and therefore finance matters.","e":"Class Participation 20%; Quizzes 20%; Group Case Memo 25% (Mid-course); Final exam 35% (Exam period)","r":"Cases and required readings will be posted on Quercus","p":"Core MBA Courses"},"2302":{"t":"Fall 2026","ti":"Security Analysis and Portfolio Management","w":"Alexandre Corhay, Assistant Professor, Finance","a":"This course is designed for students interested in both the theoretical frameworks and practical applications of portfolio management.","f":"12 weekly sessions, ending with group presentations","s":"This course builds upon concepts introduced in RSM1231, focusing on the principles and techniques underlying the construction and management of modern investment portfolios. It emphasizes the objectives, strategies, and risk-return trade-offs appropriate for various types of investors.","e":"Assignments (2) 15%; Class Participation 10%; Investment Project 25% (End of term); Final Exam 50% (Exam period)","r":"Textbook: Investments by Bodie, Kane, Markus, Switzer, Boyko, Panasian, and Stapleton, McGraw-Hill Ryerson, 10th Canadian Edition 2022.","p":""},"2304":{"t":"Fall intensive 2026","ti":"Financial Institutions and Capital Markets","w":"Simone Sepe, Professor, Finance, and Professor in Law, Chairholder of the Honourable Frank Iacobucci Chair in...","a":"MBA and master-level finance students preparing for careers in fixed-income and banking, financial regulation, consulting, or corporate treasury.","f":"9 sessions, 6:00 p.m. – 9:30 p.m., from August 31 through September 11th.","s":"Banks pool savings, supply payments, and create liquidity by funding long-term assets with short-term liabilities. That transformation makes them valuable yet intrinsically fragile: confidence shocks can trigger runs. We study this fragility, central-bank backstops, and the logic of modern prudential regulation (especially Basel III) alongside innovations such as securitization.","e":"Class Participation 10%; Case Reports 25%; Group Presentation 25%; Final Project 40%","r":"Course materials will consist primarily of lecture notes prepared by the instructor, along with selected case studies.","p":"Core Corporate Finance (or equivalent)."},"2306":{"t":"Fall 2026","ti":"Options and Futures Markets","w":"Kevin Wang, Associate Professor, Finance","a":"Students who expect to work in finance or who would like to learn to use options and/or futures in personal trading and investing or who somehow have certain interest in derivatives markets.","f":"There are 12 weekly sessions (2 hours per session) in the fall term.","s":"The objective is to provide a well-balanced, practically useful introductory course on derivatives. It emphasizes hands-on learning through a group-based project in trading options and futures. This course can be taken alone for general interest in options and futures. Alternatively, it may serve as the first of a three-course sequence in risk management and financial engineering.","e":"Assignment 1 5% (Group); Assignment 2 10% (Individual); Case Presentation 10% (Group); Hedge Fund Trading Project 25% (Group); Final Exam 50%","r":"The textbook is “Options, Futures, and Other Derivatives” by John Hull, 11th edition.","p":""},"2308":{"t":"Spring 2027","ti":"Financial Risk Management","w":"Chay Ornthanalai, Associate Professor, Finance","a":"This course is for students who plan to work in finance, especially in banking, insurance, asset management, consulting, or regulation.","f":"9 sessions of 2 hours and 45 minutes each (Wednesdays, 6:30 to 9:15 pm) Each session combines a concept lecture, a hands-on Excel lab where you build the risk models yourself, and a case discussion...","s":"By the end of the course, you will be able to do the following: Explain why banks are regulated and how financial institutions manage risk in practice. Apply the main tools of risk management, including Value-at-Risk, expected shortfall, historical simulation, GARCH volatility models, and credit default swap pricing, and build them yourself in Excel.","e":"Group Assignment 1 12.5% (Week 4); Group Assignment 2 12.5% (Week 9); Individual In-Class Participation 20% (On-going); Final Exam (BMO Financial Trading Lab) 55% (Exam period)","r":"“Risk Management and Financial Institutions” by John Hull, 5th or 6th edition, Wiley Online subscription to the Wall Street Journal (WSJ.com), which...","p":""},"2309":{"t":"Spring 2027","ti":"Mergers & Acquisitions","w":"","a":"","f":"","s":"","e":"Class participation 20% (Throughout); Case write-ups (group) 20% (Throughout); Deal Concept Assignment or a Simulation Exercise (group) 20% (Final 2-3 weeks); Mid-term 40% (Second part of the course)","r":"","p":""},"2310":{"t":"Summer intensive 2026","ti":"Analysis and Management of Fixed Income Securities","w":"Fotini Tolias, Associate Professor, Teaching Stream at Rotman","a":"The course is designed for students who are interested in pursuing careers in finance where bonds or loans are used as a source of capital.","f":"Daily sessions from May 4th to May 13th, 2025. Schedule is available from the RO.","s":"The objective of this capital markets course is to link bond theory with market practice using traditional educational cases and current, real-world examples. By the end of the course, students should understand current fixed income markets and issues, how to structure transactions and the relative value of securities across the credit spectrum.","e":"Individual class participation 5-10%; Group participation exercises in the trading lab 15-20%; Mid-Term Exam 15-20%; Group Assignment 10-15%; Final Exam 35-40%","r":"A course pack from Harvard Business Publishing containing Notes (supportive of class material and concepts) and Cases.","p":""},"2312":{"t":"Spring 2027","ti":"Value Investing","w":"Frank Ieraci, Senior Managing Director and Global Head of Active Equities and Investment Science at CPP...","a":"Students interested in a rigorous course on fundamental company evaluation using the Value Investing approach. RSM2312 is supplemental course under the Finance emphasis.","f":"Full year, half-credit course meets in 13 bi-weekly sessions, held between September and April. Classes include a combination of lectures and guest speakers, all of whom are high profile value...","s":"The mission of this course is to provide students with the skills needed to practically apply the value-based investment philosophy to investment decision-making This course provides a practical examination of the fundamental investment process with a specific focus on the value-based approach to investing pioneered by Benjamin Graham and developed by Graham and David Dodd.","e":"Class Participation 15%; Group Reports and Presentations 40%; Final Exam – April Exam Period 45%","r":"Selected industry readings, to be posted on Quercus throughout the duration of the course.","p":""},"2313":{"t":"Summer 2026","ti":"Sustainable Finance","w":"Jan Mahrt-Smith, Associate Professor, Finance","a":"","f":"10 two-and-a-half hour sessions","s":"Students who complete this course will have the ability to: Apply financial tools and models to understanding and solving problems generally referred to as sustainability problems (the environment, climate change, poverty, income inequality, etc.) Measure and manage risk and opportunities associated with sustainability factors (ESG/CSR and other metrics) for financial institutions and other...","e":"Class Participation* 20%; Quiz 20% (In Class); Individual Paper 20%; Group Project 40%","r":"","p":""},"2314":{"t":"Fall 2026","ti":"Private Equity and Entrepreneurial Finance","w":"Alexander Dyck, Professor of Finance and Economic Analysis and Policy at the Rotman School","a":"The course should be of general interest to MBA students, as private equity plays an important role in the economy that has grown significantly in recent years.","f":"Case discussions, lecture, and general class discussion, with occasional professional visitors.","s":"The primary course objective is to develop students’ understanding of the critical issues, concepts and institutions involved in private equity and entrepreneurial finance. The course considers three perspectives: the perspective of firms seeking and receiving private equity financing (management teams, founders); the perspective of private equity firms (GPs) that act as financial intermediaries;","e":"Class Participation 20%; Case Write-ups, Problem Sets, Simulations 15%; Midterm Quiz 10%; Presentation 25% (Last 2 weeks of classes); Final Exam 30% (During exam period)","r":"Course package of case studies and a recommended textbook, “Venture Capital and the Finance of Innovation,” by Andrew Metrick and Ayako Yasuda (2021).","p":""},"2319":{"t":"Spring 2027","ti":"FinTech","w":"Ting Xu, Assistant Professor of Finance at the University of Toronto, Rotman School of Management","a":"This course will directly benefit students considering technology careers, including careers in both startups and established firms, as well as those considering careers in the financial sector, such...","f":"In-person. Twelve 2-hour sessions over 12 weeks.","s":"FinTech, the application of information technology to finance, is rapidly changing the landscape of financial services. The purpose of this course is two-fold 1) to provide knowledge and skills needed to understand the mechanisms behind various FinTech innovations, 2) to prepare you for careers in the technology space, particularly those focused on financial services.","e":"Class Participation 20%; Quizzes (x2) 15%; Group presentations 35% (Last class); Investment memo 30% (End of exam period)","r":"Cases and required readings will be posted on Quercus.","p":"Core MBA Courses"},"2326":{"t":"Winter intensive 2027","ti":"How Banks Work: Management in a New Technological Age","w":"Richard Nesbitt, Chair of The Inclusion Initiative at the London School of Economics","a":"This course is designed for students who intend to work in the financial services industry or in an industry that is closely aligned to financial services.","f":"This course is being offered as an intensive in January 2027 over 9 sessions. 9 daily sessions 6:00 to 9:30 pm at Rotman. Begins on Jan 11 and final class on Jan 21, 2027.","s":"The goal of this course is for the students to develop a real world understanding about managing a bank or other financial institution. Today especially following the pandemic of 2020, we are in a world of trade-offs. Customer and employee health versus returns to shareholders. Investor protection versus investor choice. Investment in new technologies that may cannibalize existing business lines.","e":"Class Participation 20%; Small Group Presentation 15% (Various); Term Paper 15% (End of class sessions); Final Exam 50%","r":"The reading includes, book chapters, case studies, and articles. All provided on Rotman system.","p":""},"2328":{"t":"Fall 2026","ti":"Machine Learning and Financial Innovation","w":"Jun Yuan","a":"Data science is having an increasingly significant impact on the financial sector. Applications include credit decisions, private equity, algorithmic trading, fraud detection, customer behavior...","f":"12 two-hour sessions over 12 weeks followed by a two-hour exam.","s":"Learn machine learning (ML) techniques, including supervised learning, unsupervised learning, reinforcement learning, natural language processing (NLP) and generative AI (GenAI) Understand the intuition and theory for ML Know the real-use applications of ML techniques and GenAI in finance Hands-on experience on implementing ML for use cases This course introduces students to financial business...","e":"Class Participation 10%; Individual assignments 20%; Group Projects 20%; Class presentations 10%; Exam (during final exam period) 40%","r":"“Machine learning in Business: An Introduction to the World of Data Science” 4th edition, 2025, John Hull, Jacky Chen, Zissis Poulos and Jun Yuan.","p":""},"2401":{"t":"Summer 2026","ti":"Data and Information Management for Business Analytics","w":"Gerhard Trippen, Associate Professor, Teaching Stream, Operations Management and Statistics","a":"This course is for those that want to gain the foundational skills of working with data. 80% of business analysis efforts are spent on finding, extracting, cleaning, and visualizing data prior to...","f":"Intensive format – 2 weekly classes over 6 weeks","s":"Apply the principles of Database Management System Design concepts from analysis to full implementation Create Structured Query Language (SQL) queries appropriate for data extraction and summarization tasks Demonstrate the ability to prepare, explore and validate data for business analysis Apply advanced data analysis techniques towards the development of decision-making tools Develop Business...","e":"Weekly Self Study and Practice Activities 10%; Assignment 1 15%; Assignment 2 15%; Assignment 3 (Analysis and Visualization) 10%; Final Exam (Friday, June 26, 2026) 50%","r":"SQL Python","p":""},"2405":{"t":"Summer intensive 2026","ti":"Supply Chain Management","w":"Ming Hu, Professor, Operations Management and Statistics","a":"The course is intended for students interested in general management or careers in consulting, operations, or marketing.","f":"A combination of 3-hour classes over 8 days of the Summer Intensive 2026 term. Mix of lectures, case discussions, spreadsheet models, and interactive simulation games.","s":"Understand how to develop fundamental optimization models to make robust supply chain design and policy decisions to develop the supply chain capabilities required to support the business strategy and improve the performance of a firm and of an entire supply chain.","e":"Full Case Analysis (One): Group 30%; Class Participation: Case Discussion/Simulation Game 20%; Final Exam (Multiple Choice/Short Answer, in class May 14, 2026) 50%","r":"Textbook: Chopra, S., Supply Chain Management: Strategy, Planning, & Operation (Pearson, Boston) Case packet Further materials (made available...","p":""},"2406":{"t":"Fall 2026","ti":"Operations Management Strategy","w":"","a":"","f":"","s":"","e":"Class Participation 15%; Group Case Write-Ups 15% (3 submissions throughout the course); Group Case Presentation 10% (1 group evaluation); Final Open-Book Examination 60%","r":"","p":""},"2408":{"t":"Spring 2027","ti":"Modeling and Optimization for Decision Making","w":"Gerhard Trippen, Associate Professor, Teaching Stream, Operations Management and Statistics","a":"The course is intended for students interested in learning how to support decision making using business analytics.","f":"12 weekly sessions","s":"To improve students ability in the area of business analytics decision making supported by fact-based, data-driven, quantitative analysis. To develop, integrate and reinforce students’ modeling skills in a variety of applications. To enhance and reinforce students’ ability to intelligently use information in the presence of uncertainty.","e":"Individual cases/assignments 40%; Group cases 40% (3-4 cases, one every 2-3 weeks); Final Exam 20% (During exam period)","r":"Practical Management Science, Sixth Edition by Winston and Albright, Cengage.","p":""},"2409":{"t":"Spring 2027","ti":"Data Science for Managers","w":"Parvin Malekzadeh, Postdoctoral Fellow in Operations Management and Statistics at the Rotman School of...","a":"Students who are interested in acquiring hands-on skills in data structuring and predictive modeling to support business decision-making.","f":"Weekly sessions consisting of lectures, guest speakers, and student presentations","s":"Expose students to key Predictive Analytics and Machine Learning tools Enable students to Structure business decisions as “analytical” problems Identify which data sources are needed to provide an answer Structure the data for analysis using common data management operations (joins, aggregations, disaggregations, etc.) Understand and apply appropriate analytical tools Derive managerial insights...","e":"Class Participation 10%; Group project* 30% (1 submission); Individual case analyses 30% (3 submissions); Midterm 30% (In class – date TBD)","r":"No required textbook is needed for this course. Students will need access to Python, which is free to install and use.","p":""},"2417":{"t":"Fall 2026","ti":"Applied Generative AI for Business Decision-Making","w":"Ningyuan Chen, Associate Professor, Operations Management and Statistics","a":"Students interested in using AI and large language models productively in their work","f":"12 biweekly sessions over 6 weeks","s":"Allow Rotman MBAs to confidently direct generative AI and large language models in business applications. Students will learn to understand the basics of LLMs, to use AI tools for various tasks, to design effective prompts and personalized workflows, and to apply validation principles so AI-driven outputs are accurate, ethical, and operationally sound.","e":"Quiz 20%; Assignments 15%; Participation 15%; Presentation 50% (Week 11 and 12)","r":"A working laptop (Mac preferred) with internet access. Students should have accounts for selected GenAI tools used in class (e.g., Claude, ChatGPT,...","p":""},"2500":{"t":"Fall 2026","ti":"Marketing Strategy","w":"Sam Cukierman, Assistant Professor, Teaching Stream, Part-Time, Marketing","a":"This course is for students who want to sharpen their strategic thinking and enjoy case study discussion and active class participation.","f":"12 regular sessions","s":"This course uses the case study method with selected cases from a casebook, supplemented by special handouts and guest speakers, to teach marketing strategy as an organizational decision-making process. Students will gain an understanding of and be able to put in practice the processes used to make informed decisions, learning what works in varied industries and scenarios.","e":"Class Participation 20%; Case Write-up 1 25% (Week 5); Case Write-up 2 25% (Week 9); Group Case Presentation 30% (Week 12)","r":"Textbook: We no longer use a textbook for this class.","p":""},"2504":{"t":"Spring 2027","ti":"Consumer Behaviour: Psychology, Data, and the Power of AI","w":"Inez Blackburn, Assistant Professor, Teaching Stream, Part-time, Marketing","a":"","f":"In-Person","s":"By the end of this course, students will be able to: Decode consumer psychology—apply insights from cognitive and social psychology to predict and influence consumer choice. Leverage AI and data analytics—use machine learning, natural language processing, and behavioral data to identify emerging trends and anticipate consumer needs.","e":"Class Participation 20%; Case Study 1 15%; Case Study 2 15%; Group Assignment 40%; Reflection Paper AI & Consumer Behavior 10%","r":"","p":""},"2506":{"t":"Spring 2027","ti":"Strategic Marketing Intelligence","w":"Dinara Akchurina, Assistant Professor, Marketing","a":"Students interested in data-driven marketing and marketing analytics for strategic decision-making.","f":"The course consists of lectures, guest speaker sessions, case studies, in-class exercises, and individual and group assignments.","s":"The goal is to familiarize students with the fundamentals of marketing research and marketing intelligence and to enhance their abilities to define and solve marketing problems. By the end of the course, students should know how to: Translate business problems into research frameworks Select and apply appropriate research tools and intelligence sources Interpret results and use these insights to...","e":"Class Participation 15%; Group Report 20% (Week 6); Group Presentation 15% (Week 6); Individual Assignment Checkpoint 5% (Week 11); Individual Assignment(s) 45%","r":"","p":""},"2511":{"t":"Fall 2026","ti":"Fintech Founders Journey: Marketing from Startup to Scaleup","w":"Dan Richards, Assistant Professor, Teaching Stream, Marketing","a":"This course is for students who hope to work in startups, in venture capital, as product managers in technology roles or in financial services generally.","f":"12 regular sessions, 2.5 hours in length, incorporating a guest speaker, discussion of articles and cases and a lecture.","s":"Fintech Founders Journey explores the number one issue for CEOs of every successful player in financial services: the onslaught from a wave of well-funded, disruptive startups looking to carve out their most profitable lines of business.","e":"Submitting Key Lessons at Class Conclusion 12%; Weekly Quiz on Assignments 15%; Group Project 33% (Delivered in class); Final Exam 40% (In person during exam period)","r":"There is no text, rather the course uses a combination of videos and articles from leading publications that act as “living cases’ and enhance the...","p":""},"2512":{"t":"Spring 2027","ti":"Branding","w":"Scott Hawkins, Associate Professor, Marketing","a":"The course is intended for second-year MBA students interested in branding issues, and should appeal to many students. Students interested in a career in marketing will find the material essential.","f":"12 regular sessions","s":"To develop an understanding of the strategic importance of brands in creating value for customers and firms. To develop skills in planning, executing, and controlling branding strategies. To develop a customer-based view of brand equity that explicitly addresses the role of cognitive, emotional, social, cultural, and behavioural factors in creating value for consumers.","e":"Class Participation 20%; Brand Audit Proposal (group) 5% (Week 5); Written Case Analysis 40% (Week 8); Brand Audit Project Report (group) 30% (Week 12); Brand Audit Presentation (group) 5% (Week 12)","r":"There is one required course package, which may be purchased online.","p":""},"2513":{"t":"Fall 2026","ti":"Pricing Strategy","w":"Nitin Mehta, Professor, Marketing, Ellison Professorship in Marketing","a":"This course is appropriate for anyone who expects to be involved in the determination, execution and communication of a price.","f":"Fall Term 2026","s":"After taking this course, you will be able to: Understand the importance of the demand curve and customer willingness-to-pay in pricing strategy, and learn methods of estimating the demand curve. Learn how to calculate profit-maximizing prices. Calculate expected value to customers (VTC) and develop the concept of value based pricing.","e":"Class Participation 20%; Group case write-up 40% (Session 5); Final Exam 40% (During Exam Period)","r":"There is an electronic course packet that includes several cases and a few articles. Additional required readings will be posted to Quercus.","p":""},"2517":{"t":"Fall 2026","ti":"Futures Thinking: Developing Business Foresight","w":"Emma Aiken-Klar, Assistant Professor, Marketing and Academic Director, Business Design Initiative","a":"Future business leaders who are interested in how to think innovatively beyond solutions based on projections of past data.","f":"2-hour studio class: introductory theory, applied practice, and team-based project work","s":"This course is aimed at students with prior experience or coursework with business design and/or strategic innovation, and those interested in applying new ways of thinking to problem solving and decision-making. The learning objectives are to develop a foundational understanding of the theoretical underpinnings of the foresight discipline.","e":"Participation/Discussions: Individual (including 5% Team 360) 20%; Discussion Comments/Reflections 5 x 5% 25%; Horizon Scan Group Assignment 15% (Class 4); Driver Mapping Group Assignment 10% (Class 7); Scenarios and Recommendations Group Report 15% (After Class 12); Final Video Reflection: Individual 15% (After Class 12)","r":"Will be supplied in Quercus","p":""},"2521":{"t":"Fall 2026","ti":"Digital Marketing","w":"Avi Goldfarb, Professor, Marketing, Rotman Chair in Artificial Intelligence and Healthcare","a":"Students interested in the impact of technology on business, including artificial intelligence, digital marketing, and technology entrepreneurship.","f":"12 weekly sessions","s":"The mission of this course is to prepare you for the future of marketing. Over the past 30 years, digital technology transformed marketing. Over the next 30, AI is poised to do the same. By the end of this course, students will be able to: understand what AI is, and how it could change the practice of marketing, know how to respond to new digital marketing tools as they arise, measure how digital...","e":"Class participation 10%; Individual project proposal 5% (Session 5); Midterm 25% (Session 8); Group assignment 25% (Session 10); Individual project 30% (Session 12); Individual project presentation 5% (Session 12)","r":"A reading list will be provided, focused on recent advances in technology.","p":""},"2522":{"t":"Summer intensive 2026","ti":"Marketing and Behavioural Economics","w":"Kristen Duke, Assistant Professor, Marketing","a":"This course is relevant for students interested in marketing, design, product innovation, customer experience, strategy, behavioural finance, psychology, decision-making, and public policy.","f":"Summer intensive over 1.5 weeks.","s":"The purpose of this course is to make behavioural economics (BE) accessible as a tool for solving problems. By the end of the course, students should: Have a working understanding of core principles of behavioural economics. Understand the relevance and implications of these principles for common marketing (and many other business and policy) problems.","e":"Class participation 20%; Individual report 40%; In-class group workshop challenge 8%; Group project 32%","r":"No textbook. There is a package of cases and articles and a popular press book.","p":""},"2523":{"t":"Summer intensive 2026","ti":"Business Design Fundamentals","w":"Anjana Dattani, Assistant Professor, Marketing","a":"This course is aimed at students who appreciate design's role in business and are keen to apply human-centred principles to business innovation.","f":"Intensive 3.5-hour studio/class over 9 days (2 weeks in May). Workshop-style classes with hands-on activities, flipped-classroom discussions, and field work (virtual and physical).","s":"The learning objectives are to: Gain an in-depth understanding of Business Design methods and how they are applied in industry settings. Actively practice business design mindsets and techniques using management frameworks, ethnographic methods and design techniques to find, frame and solve problems. In consulting teams, design and conduct empathic research in-field and online to gain insight.","e":"Individual Participation 15%; Reflection Paper x 2 (Individual) 30%; Innovation Design Brief and Research Plan (Team) 10%; Individual Worksheets and Reflections 15%; Business Design Proposal (Team) 30%","r":"A Business Design toolkit / templates will be provided for free. Required readings and supplemental materials will be provided on Quercus.","p":""},"2524":{"t":"Fall intensive 2026","ti":"Business Design Practicum","w":"Emma Aiken-Klar, Assistant Professor, Marketing and Academic Director, Business Design Initiative","a":"This course is open to students who have a keen interest in Business Design (BD) and human-centered innovation, and who are interested in taking a deep dive in understanding how design practices are...","f":"3.5 hour studio class: introductory theory, applied practice, and team-based project work","s":"This course is aimed at students who are keen to explore design's role in business innovation, specifically in AI innovation. The learning objectives are to: Learn how to apply the core principles and practices of Business Design: using management frameworks, ethnographic methods and design techniques to find, frame and solve problems.","e":"Participation 30%; Industry Analysis Mini Reports 40%; Final Report and Presentation 30% (September 11th)","r":"Will be supplied in Quercus","p":"Business Design Fundamentals, or previous business design/design-led innovation is STRONGLY..."},"2525":{"t":"Summer 2026","ti":"One to One Marketing","w":"Dan Richards, Assistant Professor, Teaching Stream, Marketing","a":"Students who want to improve their networking and written and verbal communication skills.","f":"12 weeks from May 21 to August 13, Thursdays 7:00pm to 9:00pm. 12 two hour classes. Short videos before classes will deliver content.","s":"Doing great work and having terrific ideas are of little value if you can’t sell that work and don’t get buy-in to your ideas. As a result of this course, you’ll: Learn what it takes to communicate more effectively, by seeing research on the elements of effective communication and receiving feedback on short videos and presentations. Write emails and reports that get action, by implementing best...","e":"Weekly Assignments 5%; Class Takeaways 10%; BiWeekly Journal 10%; Weekly Quiz 10%; Videos 15%; Group Project 20%; Final Exam 30% (Aug 20)","r":"","p":""},"2526":{"t":"Summer 2026","ti":"Creative Thinking for Business Innovation","w":"Anjana Dattani, Assistant Professor, Marketing","a":"","f":"This experiential course requires students to engage in a studio/classroom and use paper-based and digital tools, templates and resources to contribute to discussion, create assignments and presentations.","s":"By the end of the course, you will be able to: Build creative confidence in expressing POVs and making decisions. Learn how to unlock, express and foster your creative potential. Analyze, visualize and synthesize business ideas and strategies. Critique and evaluate ideas and opportunities. Creativity is a core leadership skill that differentiates a great leader from a good one.","e":"Class Participation (Individual) 15%; In-Class Activities (Individual) 5%; Reflections (Individual) 25%; Comic Book Business Case (Individual/Pairs) 25%; Creative Collaboration Project (Team) 30%","r":"","p":""},"2527":{"t":"Spring 2027","ti":"Design Research and Insight-Driven Storytelling","w":"Emma Aiken-Klar, Assistant Professor Part-Time, teaching stream, Marketing","a":"Students interested in business design, CX, service design, human-centered strategy or strategic innovation.","f":"","s":"Learn the fundamental principles of design research for business and innovation. Learn how to design and plan a qualitative research study. Learn how to apply ethnography (observation, interviews and analysis) to a real business challenge.","e":"Individual Participation + Discussion 20%; Reflection Comments (5% x 4) 20% (Jan 29, Feb 05, Feb 12, Mar 5); Tableau Workshop (Asynch) 5% (Mar 24); Research Plan + Guide (team) 10% (Feb 26); Final Research Report (team) 30% (April 9 before class); Individual Final Assessment (video) 15% (April 12 midnight)","r":"Materials provided online","p":""},"2603":{"t":"Fall 2026","ti":"Advanced Negotiations and Conflict Management","w":"Chen-Bo Zhong, Professor, Organizational Behaviour and Human Resource Management","a":"The target audience for this course is any student interested in developing a sophisticated set of negotiation, influence, and conflict management skills.","f":"For Fall Term 2026, expect four meetings over two weekends.","s":"A basic premise of the course is that while managers and leaders need analytical and technical skills to develop optimal solutions to problems, a broad array of negotiation and conflict management skills is needed to implement and gain acceptance for these solutions.","e":"Class Participation 20%; Planning & role prep 10%; Learning Journal 30%; In-class Quiz 40%","r":"A course packet will be prepared for this course. It will include a collection of the very best, most focused articles and chapters addressing issues...","p":"RSM2604H is a prerequisite."},"2604":{"t":"Spring 2027","ti":"Managerial Negotiations","w":"Geoffrey Leonardelli, Professor, Organizational Behaviour and Human Resource Management","a":"This course is intended for students who expect to work with people. It provides an opportunity to develop your interpersonal skills and learn how to negotiate resources.","f":"Spring 2027: weekend intensive course with anticipated in-class time to be 4 six-hour sessions.","s":"Negotiation is the art and craft by which decisions are made, agreements reached, and disputes resolved between two or more parties. Managerial Negotiations can be hard work, where negotiators are confronted by obstacles of uncertainty, the potential for conflict and limited control.","e":"Class Participation 20%; Self-Appraisal Paper 80% (Usually one week after final class)","r":"A book accompanies this course. The book, in my experience, is the best ongoing resource available for learning about managerial negotiations.","p":""},"2613":{"t":"Fall intensive 2026","ti":"C-Suite: Living Out Leadership Day to Day for Organizational Impact","w":"Nouman Ashraf, Associate Professor, Teaching Stream within the Organizational Behavior area at the Rotman...","a":"C-Suite introduces students to the practice of deep learning about the challenges of leading through opportunities for engagement with leaders across diverse organizational cultures and industries.","f":"This offering builds on instructor's core pedagogical approach of enabling comprehension, extension and application of key models, frames, and experiences.","s":"Through this course, participants will finesse their leadership stance and add depth to their toolkit. This entails gaining a firm understanding of the instincts that motivate them, frameworks for decision making that inform how they transition through many different roles, and the range of tools they rely upon for enabling innovation.","e":"","r":"Readings will be posted online.","p":""},"2615":{"t":"Fall 2026","ti":"From Human Nature to Future Tech: Tools for Tomorrow’s Leaders","w":"Matthew Feinberg, Associate Professor of Organizational Behaviour and PhD Coordinator of the OBHRM Area","a":"This course is best suited for MBA students who are intellectually curious, eager to think beyond immediate business applications, and interested in exploring how timeless aspects of human nature...","f":"12 weekly sessions","s":"The mission of this course is to equip future leaders with a deep understanding of human nature as a lens for anticipating and navigating technological revolutions. By blending insights from psychology, philosophy, and the social sciences, students will develop the critical perspective and adaptive skills needed to guide organizations and societies through profound change.","e":"","r":"This course will not use a single textbook. Instead, students will engage with a curated mix of materials including academic journal articles, review...","p":""},"2618":{"t":"Spring 2027","ti":"The Socially Intelligent Manager","w":"Stéphane Côté, Geoffrey Conway Chair in Business Ethics, Professor of Organizational Behaviour","a":"Students interested in accelerating their careers by better understanding the role of social skills at work, receiving numerical feedback on their social skills (via a 360 assessment and in-person...","f":"Intensive: February 26 (1-6pm), February 27 (9am-5pm), March 5 (1-6pm), March 6 (9am-5pm)","s":"Students will gain knowledge of what comprises social intelligence and how these skills affect their own professional activities. Students will appreciate the importance of social intelligence to their own leadership and decision making, and in such diverse organizational experiences as coaching and conflict resolution. The course adopts a People Analytics approach.","e":"Class Participation 20%; Self-Assessment Analysis and Personal Development Plan 80%","r":"Suggested academic and business articles will be posted on Quercus.","p":""},"2619":{"t":"Spring 2027","ti":"Power and Influence in Organizations","w":"Tiziana Casciaro, Professor, Organizational Behaviour and Human Resource Management, Marcel Desautels Chair","a":"This is a course about learning to use power and influence as effective tools for understanding your surroundings and achieving your goals.","f":"8 weekly three-hour sessions","s":"This course presents conceptual models, tactical approaches, and self-assessment tools to help you develop your own influence style and understand political dynamics as they unfold around you. By focusing on specific expressions of power and influence, this course gives you the opportunity to observe the effective and ineffective uses of power in different organizational contexts and stages of a...","e":"Class Participation (individual) 20%; Power Balancing Analysis (group) 15% (Week 5); Network Analysis (individual) 10% (Week 7); Final Paper (individual) 55% (Two Weeks After Final Class)","r":"Textbook Power, for All: How It Really Works and Why It’s Everyone’s Business, as well as cases and articles to be purchased by students or made...","p":""},"2621":{"t":"Fall 2026","ti":"Effective Leadership","w":"Gary Latham, Professor, Organizational Behaviour and Human Resource Management","a":"Students interested in issues regarding/understanding how to build high performing teams, know how to spot \"winners\", ways to coach high performing teams and methods for overcoming learned...","f":"","s":"To increase your personal effectiveness as a leader. Focus is on selection, performance management, motivation, and leadership in the workplace. This course will consist of a series of lectures, group discussion, with an emphasis on workshops regarding the following subject matter: How can we build a high performing team? Invariably, people leave.","e":"Class Participation 20%; Online Discussion Board 10%; Final Exam (In-person) 70% (During the exam period)","r":"Latham, G.P. (2018). Becoming the evidence-based manager: Making the science of management work for you (2nd ed.). Boston: Nicholas Brealey.","p":""},"2622":{"t":"Spring 2027","ti":"The Leadership Development Lab","w":"Scott Rutherford, Associate Professor, Part-time, Strategic Management","a":"This course is designed for students interested in meaningfully developing strengthening their Leadership mindsets and capabilities, particularly with respect to motivation, agency, accountability...","f":"The course takes an intensive, 2-day residential retreat format that is based on approaches taken by many leading organizations in supporting the leadership development of their managers and...","s":"The goal of this course is to support students in their continuing growth as leaders by helping them exercise effective agency, accountability and commitment in achieving their developmental aspirations from the program. This goal will be achieved by providing students an opportunity to identify patterns of behavior that are both helping and hindering their development as leaders.","e":"Leadership Development Priorities CR/NCR (2 weeks before the Retreat); Identity Insights and Commitments CR/NCR (2 weeks after the Retreat)","r":"There are no required readings for this course. The most important preparation is to completely clear your calendar to be able to attend the 2-day,...","p":""},"2702":{"t":"Fall 2026","ti":"Rotman OnBoard Fellowship","w":"Lisa Luinenberg, Director of the Johnston Centre for Corporate Governance Innovation","a":"This course is ideal for students who want to: Gain real boardroom exposure and understand how boards function Build hands-on consulting experience through a live client project Develop resume-ready...","f":"Monthly in-person sessions across both terms (with occasional virtual sessions) Guest speakers and practitioner insights from the non-profit and governance sectors Ongoing project work with your...","s":"Develop a strong understanding of the non-profit sector, its governance structures, and leadership dynamics Understand the role of boards in shaping organizational strategy and impact Apply governance concepts to real-world challenges through a live consulting engagement Build practical consulting, advisory, and communication skills Foster collaboration between Rotman students and the non-profit...","e":"Final Project Scope 25% (End of October 2026); Interim Report 25% (Mid-January 2027); Final Deliverable (including client feedback) 50% (End of March 2027)","r":"Most of the resources will be materials readily available from the University of Toronto library system.","p":""},"2913":{"t":"Winter intensive 2027","ti":"GettingItDone","w":"Dr. John O’Dwyer, successful entrepreneur, author","a":"GettingItDone provides participants with a Comprehensive Management System, complete with over 30 proven Leadership/Management Effectiveness Tools, used for developing a winning strategy, getting...","f":"Intensive format: delivered over ten class days January 11th to 22nd, 2027, Monday to Friday, 9:30 am to 1:00 pm, plus teamwork outside of class time (~90 mins daily)","s":"Participants will get proven tools that will enhance their Personal effectiveness. Participants will get proven tools to increase their Team’s Effectiveness. Participants will get proven tools to achieve improved Organizational Results. Participants will experience and practice these tools, in teams, during the course. Graduates will be more effective Leaders in the real world.","e":"Active Class Participation 20% (All classes); Management SIMulation 10%; Leadership Gurus Exam 20% (Weds, January 20 (10:00 pm)); Individual Presentation 20% (Thurs, January 21 (6:00 pm)); Team Presentation 30% (Thurs, January 21 (8:00 pm))","r":"Course package: GettingItDone Interactive Tool Kit - ISBN: 978-0-9689988-2-3 (digital) Peter F.","p":""}}/*FACTS_END*/;
+var AREAS = [
+  { id: "strat", name: "Strategic Management", range: "RSM20XX", pre: "Prerequisite: RSM1201H", c: [
+    [2008,"Creative Destruction Lab (Introductory Course)"],[2011,"International Strategy"],[2012,"Entrepreneurship"],[2013,"Creative Destruction Lab (Advanced Course)","Y"],[2014,"Sustainability Strategy"],[2016,"Strategy in the Energy Economy"],[2017,"Pharmaceutical Strategy"],[2018,"Strategy in Emerging Markets"],[2019,"Corporation 360°"],[2020,"Health Sector Strategy and Organization"],[2021,"Corporate Strategy"],[2023,"Strategic Change and Implementation"],[2030,"Canadian Business History"],[2040,"Progress, or How Big Things Get Done"],[2052,"Management Consulting"],[2054,"Technology Strategy"],[2057,"Venture Capital Strategy"],[2058,"Communicating Strategy"],[2059,"Healthcare and Life Sciences Consulting: Field Application Project"],[2061,"Strategic Networks"],[2062,"Management Consulting Practicum"],[2063,"Catastrophic Failure in Organizations"],[2081,"Social Entrepreneurship"],[2083,"Leading Canadian Business in the Global Context"],[2085,"Healthcare Innovation"],[2087,"Strategy Beyond Markets"]
+  ]},
+  { id: "eap", name: "Economic Analysis and Policy", range: "RSM21XX", pre: "Prerequisites: RSM1210H and RSM1211H", c: [
+    [2122,"Clean Energy: Policy Context and Business Opportunities"],[2123,"International Business in the World Economy"],[2125,"Game Theory & Applications for Management"],[2126,"Real Estate Development"],[2127,"Economic Environment of International Business"],[2128,"Real Estate Economics"],[2129,"Forecasting Models and Econometric Methods"],[2130,"Real Estate Investment"],[2132,"Business and the City"],[2198,"Business Government Relations"]
+  ]},
+  { id: "acct", name: "Accounting", range: "RSM22XX", pre: "Prerequisites: RSM1220H and RSM1222H", c: [
+    [2204,"Taxation and Decision Making"],[2206,"Accounting for Entrepreneurs"],[2209,"Financial Statement Analysis"],[2210,"Financial Distress and Insolvency"],[2211,"Business Law"],[2212,"Business Analysis and Valuation"],[2220,"White Collar Crime: Creative Accounting and Corporate Fraud"]
+  ]},
+  { id: "fin", name: "Finance", range: "RSM23XX", pre: "Prerequisites: RSM1231H and RSM1232H", c: [
+    [2300,"Corporate Financing"],[2301,"Financial Management"],[2302,"Security Analysis and Portfolio Management"],[2303,"Risk Modeling and Financial Trading Strategies"],[2304,"Financial Institutions and Capital Markets"],[2305,"International Financial Management"],[2306,"Options and Futures Markets"],[2307,"Advanced Derivatives"],[2308,"Risk Management and Financial Institutions"],[2309,"Mergers and Acquisitions"],[2310,"Analysis and Management of Fixed Income Securities"],[2312,"Value Investing"],[2313,"Sustainable Finance"],[2314,"Private Equity and Entrepreneurial Finance"],[2315,"Management of Private Wealth"],[2319,"FinTech"],[2321,"Institutional and Individual Asset Allocation"],[2326,"How Banks Work: Management in a New Technological Age"],[2328,"Machine Learning and Financial Innovation"],[2329,"Blockchain and Decentralized Finance"]
+  ]},
+  { id: "om", name: "Operations Management and Statistics", range: "RSM24XX", pre: "Prerequisites: RSM1240H and RSM1282H", c: [
+    [2401,"Data and Information Management for Business Analytics"],[2405,"Supply Chain Management"],[2406,"Operations Management Strategy"],[2407,"Service Operations Management"],[2408,"Modeling and Optimization for Decision Making"],[2409,"Data Science for Managers"],[2416,"Business Operations for Sustainability"],[2417,"Applied Generative AI for Business Decision-Making"]
+  ]},
+  { id: "mkt", name: "Marketing", range: "RSM25XX", pre: "Prerequisite: RSM1250H", c: [
+    [2500,"Marketing Strategy"],[2504,"Consumer Behaviour"],[2505,"Strategic Marketing Communication"],[2506,"Strategic Marketing Intelligence"],[2508,"Sales Management"],[2511,"Fintech Founders Journey: Marketing from Startup to Scale"],[2512,"Branding"],[2513,"Pricing Strategy"],[2517,"Futures Thinking: Developing Business Insight"],[2521,"Digital Marketing"],[2522,"Marketing and Behavioural Economics"],[2523,"Business Design Fundamentals"],[2524,"Business Design Practicum"],[2525,"One to One Marketing"],[2526,"Creative Thinking for Business Innovation"],[2527,"Design Research and Insight-Driven Storytelling"],[2528,"Service Design: Innovating Service-Based Organizations"]
+  ]},
+  { id: "ob", name: "Organizational Behaviour and HR Management", range: "RSM26XX", pre: "Prerequisite: RSM1260H", c: [
+    [2601,"Organization Design"],[2603,"Advanced Negotiations and Conflict Management"],[2604,"Managerial Negotiations"],[2609,"Aligning People and Strategy"],[2613,"C-Suite: Living Out Leadership Day to Day for Organizational Impact"],[2615,"From Nature to Future Tech: Tools for Tomorrow's Leaders"],[2616,"Inclusive Global Development: Economic Prosperity through Human Development"],[2618,"Socially Intelligent Manager"],[2619,"Power and Influence in Organizations"],[2620,"Leading Teams"],[2621,"Effective Leadership"],[2622,"Leadership Development Lab","H","core"],[2625,"Business Problem Solving: A Model-Based Approach"],[2640,"Leading Social Innovation"]
+  ]},
+  { id: "it", name: "Integrative Thinking", range: "RSM29XX", pre: "", c: [
+    [2913,"GettingItDone®"]
+  ]},
+  { id: "gx", name: "Global and Experiential Learning", range: "RSM27XX", pre: "", g: true, c: [
+    [2701,"Global Consulting Projects (GCP)","H","","Global","Part of the Global Manager Initiative. Prereq RSM2123H."],
+    [2709,"Global Practicums: Global Management","H","","Global","GMI-linked. Needs RSM2123H and the matching GCP."],
+    [2710,"Global Practicum: Entrepreneurship and Innovation","H","","Global","Past trips: Silicon Valley, London."],
+    [2711,"Global Practicum: Strategy and Innovation","H","","Global","Past trips: Berlin, Singapore. January trips block winter electives."],
+    [2712,"Global Practicum: Impact Investing","H","","Global","Past trip: Costa Rica. January trip blocks winter electives."],
+    [2713,"Global Practicum","H","","Global","Listed by Rotman. No recent offering shown."],
+    ["TRF9XXX","International Exchange Program","H","","Global","Application-based via Office of Student Engagement. Credit/No Credit."],
+    ["TRF9XXX","Doing Business Internationally (DBI)","H","","Global","Application-based via Office of Student Engagement. Credit/No Credit."],
+    [2700,"Independent Study Projects (ISP)","H","","Experiential",""],
+    [2702,"OnBoard","H","","Experiential","Year-long. Enrol in Fall."],
+    [2703,"CityLab","H","","Experiential",""],
+    [2706,"Impact Investing in an Early-Stage Enterprise","H","","Experiential",""],
+    [2798,"Venture Creation Lab","H","","Experiential","Fall 2026 section cancelled."]
+  ]}
+];
+
+var courses = [];
+AREAS.forEach(function (a) {
+  a.c.forEach(function (r) {
+    var raw = r[0];
+    var code = typeof raw === "number" ? "RSM" + raw + "H" + (r[2] === "Y" ? "" : "") : String(raw);
+    if (typeof raw === "number" && r[2] === "Y") code = "RSM" + raw + "Y";
+    courses.push({
+      id: typeof raw === "number" ? "RSM" + raw + (r[4] ? r[1] : "") : raw + r[1],
+      area: a.id, code: code, title: r[1],
+      num: typeof raw === "number" ? String(raw) : "",
+      core: r[3] === "core", kind: r[4] || "", note: r[5] || "",
+      g: !!a.g && String(raw).indexOf("RSM27") === 0 || (a.g && typeof raw === "number")
+    });
+  });
+});
+
+/* Term keys: F26 Fall 2026 (running), W27 Winter intensive Jan 2027, S27 Spring 2027, FiT Fall intensive 2026, SiT Summer intensive 2026, Su26 Summer 2026, S26 Spring 2026 (global/experiential only).
+   Entry: [term, when, flag]. flag "e" = evening (weekday start 18:00 or later) or weekend, "x" = cancelled. */
+var TERMS = {
+  F26: { label: "Fall 2026", short: "Fall 26", g: "now" },
+  W27: { label: "Winter intensive 2027", short: "Winter int. 27", g: "up" },
+  S27: { label: "Spring 2027", short: "Spring 27", g: "up" },
+  FiT: { label: "Fall intensive 2026", short: "Fall int. 26", g: "past" },
+  SiT: { label: "Summer intensive 2026", short: "Summer int. 26", g: "past" },
+  Su26: { label: "Summer 2026", short: "Summer 26", g: "past" },
+  S26: { label: "Spring 2026", short: "Spring 26", g: "past" }
+};
+var TERM_ORDER = ["F26", "W27", "S27", "FiT", "SiT", "Su26", "S26"];
+var OFFER = {
+  "2012": [["F26", "Thu 13:45-15:45", "x"]],
+  "2013": [["F26", "Mon 18:30-20:30, year-long (enrol once)", "e"], ["S27", "Mon 18:30-20:30, year-long", "e"]],
+  "2016": [["S27", "Tue 13:45-15:45 (experimental)", ""]],
+  "2017": [["Su26", "Mon and Thu 18:00-21:00", "e"]],
+  "2019": [["S27", "Tue 9:15-11:15", ""]],
+  "2020": [["SiT", "May 4-14, 13:30-17:00", ""]],
+  "2021": [["F26", "Thu 16:00-18:00 or Thu 18:30-20:30", "e"]],
+  "2023": [["S27", "Tue 11:30-13:30 or Tue 16:00-18:00", ""]],
+  "2030": [["S27", "Wed 13:45-15:45", ""]],
+  "2040": [["F26", "Tue 13:45-15:45 (experimental)", ""]],
+  "2052": [["F26", "Mon 18:30-20:30", "e"]],
+  "2054": [["S27", "Tue 18:30-20:30", "e"]],
+  "2057": [["F26", "Wed 16:00-18:00", ""]],
+  "2058": [["SiT", "May 4-14, 9:00-12:30, online", ""]],
+  "2059": [["F26", "Wed 19:00-21:00", "e"]],
+  "2061": [["Su26", "Fri 13:00-18:00 and Sat 9:00-17:00, four days", "e"]],
+  "2081": [["W27", "Weekend intensive: Jan 16, 17, 23, 24", "e"]],
+  "2083": [["Su26", "Tue and Thu 19:00-21:00 (experimental)", "e"]],
+  "2087": [["F26", "Mon 11:30-13:30 (experimental)", ""]],
+  "2123": [["FiT", "Aug 31 to Sep 10, 9:30-13:00", ""], ["W27", "Weekend intensive: Jan 16, 17, 23, 24", "e"], ["Su26", "Weekend: May 23, 24, 30, 31", "e"]],
+  "2125": [["S27", "Thu 18:30-20:30", "e"]],
+  "2126": [["W27", "Jan 11-22, 13:30-17:00", ""]],
+  "2127": [["SiT", "May 4-13, 18:00-21:30", "e"]],
+  "2128": [["F26", "Mon 9:15-11:15", ""]],
+  "2130": [["S27", "Thu 16:00-18:00", ""]],
+  "2132": [["Su26", "Mon to Fri 9:30-15:00", "x"]],
+  "2198": [["SiT", "May 4-13, 9:00-12:30 (experimental)", ""]],
+  "2204": [["FiT", "Aug 31 to Sep 10, 13:30-17:00", ""]],
+  "2206": [["F26", "Thu 11:30-13:30", "x"]],
+  "2209": [["S27", "Thu 16:00-18:00 or Thu 18:30-20:30", "e"]],
+  "2211": [["W27", "Jan 11-22, 13:30-17:00", ""]],
+  "2212": [["F26", "Mon 9:15-11:15 or Mon 11:30-13:30", ""]],
+  "2220": [["Su26", "Weekend: Jul 18, 19, 25, 26", "e"]],
+  "2300": [["F26", "Tue 13:45-15:45 or Tue 18:30-20:30", "e"]],
+  "2301": [["S27", "Tue 18:30-20:30", "e"]],
+  "2302": [["F26", "Tue 16:00-18:00 or Tue 18:30-20:30", "e"]],
+  "2303": [["S27", "Wed 11:30-13:30", ""]],
+  "2304": [["FiT", "Aug 31 to Sep 11, 18:00-21:30", "e"]],
+  "2306": [["F26", "Tue 16:00-18:00", ""]],
+  "2308": [["S27", "Wed 18:30-21:30", "e"]],
+  "2309": [["S27", "Tue 11:30-13:30 or Tue 16:00-18:00", ""]],
+  "2310": [["SiT", "May 4-13, 13:30-17:00", ""]],
+  "2312": [["F26", "Thu 16:00-18:00, year-long (enrol once)", ""], ["S27", "Thu 16:00-18:00, year-long", ""]],
+  "2313": [["Su26", "Wed 18:30-21:00", "e"]],
+  "2314": [["F26", "Wed 16:00-18:00 or Wed 18:30-20:30", "e"]],
+  "2319": [["S27", "Mon 18:30-20:30", "e"]],
+  "2326": [["W27", "Jan 11-21, 18:00-21:30", "e"]],
+  "2328": [["F26", "Mon 18:30-20:30", "e"]],
+  "2401": [["Su26", "Tue and Wed 16:00-18:00", ""]],
+  "2405": [["SiT", "May 4-13, 18:00-21:30", "e"]],
+  "2406": [["F26", "Fri 8:30-12:30, six Fridays Sep 18 to Oct 23", ""]],
+  "2408": [["S27", "Mon 9:15-11:15", ""]],
+  "2409": [["S27", "Wed 14:00-16:00", ""]],
+  "2417": [["F26", "Wed 18:30-20:30 (experimental)", "e"]],
+  "2500": [["F26", "Tue 18:30-20:30", "e"]],
+  "2504": [["S27", "Wed 16:15-18:15", ""]],
+  "2505": [["F26", "Wed 13:45-15:45", ""]],
+  "2506": [["S27", "Mon 11:30-13:30 (listed as Marketing Research)", ""]],
+  "2508": [["W27", "Jan 11-22, 18:00-21:30", "e"]],
+  "2511": [["F26", "Thu 18:30-21:00", "x"]],
+  "2512": [["S27", "Tue 18:30-20:30", "e"]],
+  "2513": [["F26", "Mon 16:00-18:00", ""]],
+  "2517": [["F26", "Wed 16:00-18:00", ""]],
+  "2521": [["F26", "Tue 9:15-11:15", ""]],
+  "2522": [["SiT", "May 4-13, 9:00-12:30", ""]],
+  "2523": [["SiT", "May 4-14, 18:00-21:30", "e"]],
+  "2524": [["FiT", "Aug 31 to Sep 11, 13:30-17:00", ""]],
+  "2525": [["Su26", "Thu 19:00-21:00", "e"]],
+  "2526": [["Su26", "Weekdays May 20-27, 9:45-16:00", ""]],
+  "2527": [["S27", "Mon 16:00-18:00", ""]],
+  "2603": [["F26", "Weekend: Nov 7, 8, 14, 15 (needs RSM2604H)", "e"], ["SiT", "Weekend: May 2, 3, 9, 10", "e"]],
+  "2604": [["F26", "Weekend: Oct 24, 25, Nov 7, 8", "e"], ["W27", "Weekend intensive: Jan 16, 17, 23, 24", "e"], ["S27", "Weekend: Feb 6, 7, 20, 21 or Mar 13, 14, 20, 21", "e"], ["Su26", "Weekend: Jun 13, 14, 20, 21", "e"]],
+  "2613": [["FiT", "Weekend: Aug 29, 30, Sep 19, 20", "e"]],
+  "2615": [["F26", "Tue 11:30-13:30 (experimental)", ""]],
+  "2618": [["S27", "Fri and Sat: Feb 26, 27, Mar 5, 6", "e"], ["Su26", "Fri and Sat: May 29, 30, Jun 5, 6", "e"]],
+  "2619": [["S27", "Thu 11:30-13:30 or Wed 18:30-21:30", "e"]],
+  "2620": [["FiT", "Weekend: Aug 29, 30, Sep 12, 13", "e"]],
+  "2621": [["F26", "Weekend: Nov 21, 22, 28, 29", "e"], ["Su26", "Weekend: Aug 8, 9, 15, 16", "e"]],
+  "2640": [["S27", "Thu eve, Sat and Sun: Jan 28, 30, 31, Feb 4, 6", "e"]],
+  "2913": [["W27", "Jan 11-22, 9:30-13:00", ""]],
+  "2700": [["F26", "Intersecting with A.I.; check-ins set with instructor, register in Course Match", "e"], ["Su26", "Two sections, register in Course Match", "e"], ["S26", "New Priority Markets, bi-weekly virtual check-ins", "e"]],
+  "2701": [["F26", "Electronica (Tue/Wed evenings online, Oct 13 to Nov 4) and Consumer Electronics Show (Thu evenings online, Nov 9 to Dec 3). Register in Add/Drop Phase 2", "e"], ["S26", "Mobile World Congress and Embedded World, online evenings in Feb", "e"]],
+  "2702": [["F26", "Mon 16:00-18:00, five sessions, year-long. Enrol in Fall", ""], ["S27", "Same year-long course, no new Spring enrolment", ""]],
+  "2709": [["F26", "Electronica, Munich: travel Nov 8-14, 2026", ""], ["S27", "GP following the Las Vegas CES GCP, dates TBC", ""], ["S26", "Las Vegas, Barcelona, Nuremberg trips", ""]],
+  "2710": [["S26", "Silicon Valley and London, travel Apr 26 to May 2, 2026", ""]],
+  "2711": [["F26", "Berlin: travel Aug 30 to Sep 5, 2026 (enrolled in Summer)", ""], ["W27", "Singapore: classes Nov 16, 23, 30, travel Jan 10-16, 2027. Blocks winter intensive electives", ""]],
+  "2712": [["S26", "Costa Rica: travel Jan 11-17, 2026 (enrolled in Fall 2025). Blocks winter electives", ""]],
+  "2798": [["F26", "Mon 11:00-13:00", "x"], ["Su26", "Mon 10:30-12:30", ""], ["S26", "Mon 16:00-18:00", ""]]
+};
+/* Emphases from the Rotman registrar. M = main list, S = supplemental list. Five electives (2.5 FCE) each; minMain is how many must come from the main list. */
+var EMPHS = {
+  aai:  { name: "Applied Artificial Intelligence and Data Analytics", short: "AI & Data", minMain: 2, main: [2129, 2401, 2408, 2409, 2506], supp: [2125, 2209, 2303, 2405, 2417, 2513, 2521, 2615], extra: "" },
+  fin:  { name: "Finance", short: "Finance", minMain: 2, main: [2204, 2209, 2212, 2300, 2302, 2306, 2309], supp: [2210, 2220, 2301, 2303, 2304, 2305, 2307, 2308, 2310, 2312, 2313, 2314, 2315, 2319, 2321, 2326, 2328, 2329], extra: "" },
+  gm:   { name: "Global Management", short: "Global", minMain: 2, main: [2011, 2123, 2127, 2701, 2709, 2710, 2711, 2712, 2713], supp: [2018, 2198, 2305, 2616], extra: "Only 2 RSM27XX courses count toward your degree, so the global consulting and practicum mains compete with that cap." },
+  hsm:  { name: "Health Sector Management", short: "Health", minMain: 2, main: [2017, 2020, 2059, 2085], supp: [2054, 2057, 2407, 2523, 2528, 2702, 2713], extra: "Also counts: Dalla Lana School of Public Health courses HAD5713H and HAD5760H." },
+  iebd: { name: "Innovation, Entrepreneurship, and Business Design", short: "Innovation", minMain: 1, main: [2008, 2012, 2523], supp: [2013, 2040, 2054, 2057, 2081, 2085, 2206, 2314, 2511, 2517, 2524, 2526, 2527, 2528, 2710, 2798], extra: "Creative Destruction Lab Advanced (RSM2013Y) is worth two electives. CDL Introductory (RSM2008H) is no longer offered." },
+  lead: { name: "Leadership", short: "Leadership", minMain: 2, main: [2601, 2604, 2619, 2620, 2621], supp: [2211, 2603, 2609, 2613, 2615, 2618, 2622, 2625, 2640, 2913, 2920], extra: "Leadership Development Lab (RSM2622) is on the supplemental list, but you take it as core this fall. Ask the Registrar whether it counts toward your five. RSM2920H Top Manager's Perspective is also listed and is not in the elective catalog." },
+  mkt:  { name: "Marketing", short: "Marketing", minMain: 2, main: [2504, 2513, 2521, 2522], supp: [2500, 2505, 2506, 2508, 2511, 2512, 2519, 2525], extra: "RSM2519H MCV 2.0 is also listed and is not in the elective catalog." },
+  re:   { name: "Real Estate", short: "Real Estate", minMain: 2, main: [2126, 2128, 2130], supp: [2012, 2125, 2129, 2132, 2209, 2211, 2304, 2306, 2310, 2506, 2703], extra: "" },
+  strat:{ name: "Strategy", short: "Strategy", minMain: 1, main: [2021, 2023, 2052, 2061], supp: [2011, 2014, 2016, 2017, 2018, 2020, 2057, 2058, 2059, 2062, 2063, 2083, 2087, 2125, 2212, 2220, 2309, 2406, 2500, 2506, 2513, 2609, 2711], extra: "" },
+  ss:   { name: "Sustainability and Society", short: "Sustainability", minMain: 1, main: [2014, 2081, 2313], supp: [2019, 2122, 2416, 2640, 2702, 2703, 2706, 2712], extra: "Also counts: ENV1707H Climate Finance from the School of the Environment." }
+};
+var EMPH_ORDER = ["aai", "fin", "gm", "hsm", "iebd", "lead", "mkt", "re", "strat", "ss"];
+var SORTS = { area: "Area (grouped)", code: "Course code", title: "Title, A to Z", term: "Earliest scheduled term", emph: "Emphasis fit" };
+var AREA_NAME = {};
+AREAS.forEach(function (a) { AREA_NAME[a.id] = a.name; });
+courses.forEach(function (c) {
+  c.emph = [];
+  if (!c.num) return;
+  EMPH_ORDER.forEach(function (id) {
+    var m = EMPHS[id], n = parseInt(c.num, 10);
+    if (m.main.indexOf(n) !== -1) c.emph.push({ id: id, role: "M" });
+    else if (m.supp.indexOf(n) !== -1) c.emph.push({ id: id, role: "S" });
+  });
+});
+
+function offersFor(c) { return c.num && OFFER[c.num] ? OFFER[c.num] : []; }
+function liveOffers(c) { return offersFor(c).filter(function (o) { return o[2].indexOf("x") === -1; }); }
+
+var picks = {};
+try { picks = JSON.parse(localStorage.getItem("rotman-picks") || "{}"); } catch (e) { picks = {}; }
+function save() { try { localStorage.setItem("rotman-picks", JSON.stringify(picks)); } catch (e) {} }
+
+var state = { q: "", area: "all", term: "any", eve: false, view: "list", emph: "any", sort: "area" };
+var showArea = false;
+var TERM_FILTERS = [
+  { id: "any", name: "Any time" },
+  { id: "S27", name: "Spring 2027" },
+  { id: "W27", name: "Winter intensive 2027" },
+  { id: "F26", name: "Fall 2026" },
+  { id: "past", name: "Ran earlier in 2026" },
+  { id: "none", name: "No listing yet" }
+];
+var out = document.getElementById("out");
+var chips = document.getElementById("chips");
+var tally = document.getElementById("tally");
+
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+function renderChips() {
+  var defs = [{ id: "all", name: "All" }, { id: "list", name: "My list" }].concat(AREAS.map(function (a) {
+    return { id: a.id, name: a.id === "gx" ? "Global and experiential" : a.name.replace("Organizational Behaviour and HR Management", "OBHRM").replace("Operations Management and Statistics", "Ops and Stats").replace("Economic Analysis and Policy", "Economics").replace("Strategic Management", "Strategy") };
+  }));
+  chips.innerHTML = defs.map(function (d) {
+    var n = d.id === "all" ? courses.length : d.id === "list" ? Object.keys(picks).length : courses.filter(function (c) { return c.area === d.id; }).length;
+    return '<button type="button" class="chip" data-area="' + d.id + '" aria-pressed="' + (state.area === d.id) + '">' + esc(d.name) + '<span class="n">' + n + '</span></button>';
+  }).join("");
+  document.getElementById("terms").innerHTML = TERM_FILTERS.map(function (d) {
+    return '<button type="button" class="chip" data-term="' + d.id + '" aria-pressed="' + (state.term === d.id) + '">' + esc(d.name) + '<span class="n">' + termCount(d.id) + '</span></button>';
+  }).join("");
+}
+
+function renderTally() {
+  var ids = Object.keys(picks);
+  var total = ids.length;
+  var gx = courses.filter(function (c) { return picks[c.id] && c.g; }).length;
+  var left = 10 - total;
+  var html = '<span class="pill ' + (total === 10 ? "ok" : total > 10 ? "warn" : "") + '">' + total + ' of 10 electives picked</span>';
+  html += '<span class="pill ' + (gx > 2 ? "warn" : "") + '">' + gx + ' of 2 max global/experiential (RSM27XX)</span>';
+  if (total < 10) html += '<span class="pill">' + left + ' to go</span>';
+  if (total > 10) html += '<span class="pill warn">' + (total - 10) + ' over the 10 you need</span>';
+  tally.innerHTML = html;
+}
+
+function termHit(o, t) { return t === "past" ? TERMS[o[0]].g === "past" : o[0] === t; }
+function termCount(id) {
+  return courses.filter(function (c) {
+    var live = liveOffers(c);
+    if (id === "any") return true;
+    if (id === "none") return !live.length && !c.core;
+    return live.some(function (o) { return termHit(o, id); });
+  }).length;
+}
+
+function match(c) {
+  if (state.area === "list") { if (!picks[c.id]) return false; }
+  else if (state.area !== "all" && c.area !== state.area) return false;
+  if (state.emph !== "any" && !c.emph.some(function (e) { return e.id === state.emph; })) return false;
+  var live = liveOffers(c);
+  if (state.term === "none") { if (live.length || c.core) return false; }
+  else {
+    var pool = state.term === "any" ? live : live.filter(function (o) { return termHit(o, state.term); });
+    if (state.term !== "any" && !pool.length) return false;
+    if (state.eve && !pool.some(function (o) { return o[2].indexOf("e") !== -1; })) return false;
+  }
+  if (!state.q) return true;
+  var hay = (c.code + " " + c.title + " " + c.kind + " " + c.note).toLowerCase();
+  return state.q.toLowerCase().split(/\s+/).every(function (t) { return hay.indexOf(t) !== -1; });
+}
+
+function item(c) {
+  var on = !!picks[c.id];
+  var star = c.core
+    ? '<button class="star" type="button" disabled aria-label="Already in your core">☆</button>'
+    : '<button class="star" type="button" data-id="' + esc(c.id) + '" aria-pressed="' + on + '" aria-label="' + (on ? "Remove " : "Add ") + esc(c.title) + '">' + (on ? "★" : "☆") + '</button>';
+  var tag = c.core ? '<span class="tag note">In your core</span>' : (c.kind ? '<span class="tag">' + c.kind + '</span>' : "");
+  var note = c.note ? '<div class="prereq" style="margin:2px 0 0">' + esc(c.note) + '</div>' : "";
+  var offs = offersFor(c).slice().sort(function (a, b) { return TERM_ORDER.indexOf(a[0]) - TERM_ORDER.indexOf(b[0]); });
+  var badges = "", det = "";
+  if (c.core) {
+    badges = "";
+  } else if (!offs.length) {
+    badges = '<div class="badges"><span class="b none">Not in current listings</span></div>';
+  } else {
+    var seen = {};
+    badges = '<div class="badges">' + offs.filter(function (o) { if (seen[o[0]]) return false; seen[o[0]] = 1; return true; }).map(function (o) {
+      var allX = offs.filter(function (p) { return p[0] === o[0]; }).every(function (p) { return p[2].indexOf("x") !== -1; });
+      return '<span class="b ' + TERMS[o[0]].g + (allX ? " x" : "") + '">' + TERMS[o[0]].short + '</span>';
+    }).join("") + '</div>';
+    det = '<ul class="det">' + offs.map(function (o) {
+      var flag = (o[2].indexOf("e") !== -1 ? '<span class="e">evening/weekend</span>' : "") + (o[2].indexOf("x") !== -1 ? '<span class="cx">cancelled</span>' : "");
+      return '<li style="display:block;border:0;padding:0">' + TERMS[o[0]].label + ': ' + esc(o[1]) + flag + '</li>';
+    }).join("") + '</ul>';
+  }
+  var em = c.emph.length ? '<div class="badges">' + c.emph.map(function (e) {
+    var m = EMPHS[e.id];
+    return '<span class="b em' + (state.emph === e.id ? " hl" : "") + '" title="' + esc(m.name + (e.role === "M" ? " (main course)" : " (supplemental course)")) + '">' + esc(m.short) + (e.role === "M" ? " (main)" : "") + '</span>';
+  }).join("") + '</div>' : "";
+  var areaLine = showArea ? '<div class="prereq" style="margin:2px 0 0">' + esc(AREA_NAME[c.area]) + '</div>' : "";
+  return '<li style="align-items:flex-start"><span class="code" style="padding-top:2px">' + esc(c.code) + '</span><span class="title">' + ttl(c) + note + areaLine + badges + em + det + '</span>' + tag + star + '</li>';
+}
+
+/* Timeline (Gantt) view: one row per course, bars span the whole term window the course is scheduled in. */
+function dt(s) { return Date.parse(s + "T00:00:00Z"); }
+var AX0 = dt("2026-04-01"), AX1 = dt("2027-05-01"), DAY = 86400000;
+function pct(t) { return (t - AX0) / (AX1 - AX0) * 100; }
+var WIN = { SiT: ["2026-05-04", "2026-05-14"], Su26: ["2026-05-19", "2026-08-21"], FiT: ["2026-08-29", "2026-09-13"], F26: ["2026-09-14", "2026-12-04"], W27: ["2027-01-11", "2027-01-24"], S27: ["2027-01-25", "2027-04-16"] };
+var BANDS = [["SiT", "SI"], ["Su26", "Summer 2026"], ["FiT", "FI"], ["F26", "Fall 2026"], ["W27", "WI"], ["S27", "Spring 2027"]];
+var BAND_TITLE = { SiT: "Summer intensive, May 4 to 14, 2026", Su26: "Summer term, May 19 to Aug 21, 2026", FiT: "Fall intensive, Aug 29 to Sep 13, 2026", F26: "Fall term, Sep 14 to Dec 4, 2026", W27: "Winter intensive, Jan 11 to 24, 2027", S27: "Spring term, Jan 25 to Apr 16, 2027" };
+function monthStarts() {
+  var a = [], d0 = new Date(AX0);
+  var y = d0.getUTCFullYear(), m = d0.getUTCMonth();
+  while (Date.UTC(y, m, 1) < AX1) { a.push(Date.UTC(y, m, 1)); m++; if (m > 11) { m = 0; y++; } }
+  return a;
+}
+var MN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function gridBg() {
+  var layers = monthStarts().map(function (t) { return "linear-gradient(var(--line),var(--line)) " + pct(t).toFixed(3) + "% 0 / 1px 100% no-repeat"; });
+  var now = Date.now();
+  if (now > AX0 && now < AX1) layers.unshift("linear-gradient(var(--star),var(--star)) " + pct(now).toFixed(3) + "% 0 / 2px 100% no-repeat");
+  return layers.join(",");
+}
+function dim(o) {
+  if (state.term !== "any" && state.term !== "none" && !termHit(o, state.term)) return true;
+  if (state.eve && o[2].indexOf("e") === -1) return true;
+  return false;
+}
+function gantt() {
+  var bg = gridBg();
+  var ms = monthStarts();
+  var html = '<div class="gwrap"><div class="ginner">';
+  html += '<div class="g-row g-head bands"><div class="g-label">Term</div><div class="g-track" style="background:' + bg + '">' + BANDS.map(function (b) {
+    var w = WIN[b[0]], l = pct(dt(w[0])), r = pct(dt(w[1]) + DAY);
+    return '<div class="band ' + TERMS[b[0]].g + '" style="left:' + l.toFixed(3) + '%;width:' + (r - l).toFixed(3) + '%" title="' + BAND_TITLE[b[0]] + '">' + b[1] + '</div>';
+  }).join("") + '</div></div>';
+  html += '<div class="g-row g-head months"><div class="g-label">Course</div><div class="g-track" style="background:' + bg + '">' + ms.map(function (t) {
+    var d0 = new Date(t);
+    return '<span class="mlab" style="left:' + pct(t).toFixed(3) + '%">' + MN[d0.getUTCMonth()] + ' ' + String(d0.getUTCFullYear()).slice(2) + '</span>';
+  }).join("") + '</div></div>';
+  var hidden = 0, shown = 0;
+  var groups = state.sort === "area"
+    ? AREAS.map(function (a) { return { name: a.name, test: function (c) { return c.area === a.id; } }; })
+    : [{ name: "Sorted by " + SORTS[state.sort].toLowerCase(), test: function () { return true; } }];
+  groups.forEach(function (a) {
+    var rows = [];
+    ordered(courses).forEach(function (c) {
+      if (!a.test(c) || c.core || !match(c)) return;
+      var offs = offersFor(c).filter(function (o) { return WIN[o[0]]; });
+      if (!offs.length) { hidden++; return; }
+      rows.push({ c: c, offs: offs });
+    });
+    if (!rows.length) return;
+    html += '<div class="g-row"><div class="g-group">' + esc(a.name) + '<span>' + rows.length + ' courses</span></div></div>';
+    rows.forEach(function (r) {
+      shown++;
+      var bars = r.offs.map(function (o) {
+        var w = WIN[o[0]], l = pct(dt(w[0])), wd = pct(dt(w[1]) + DAY) - l;
+        var cls = (TERMS[o[0]].g === "past" ? "past" : (o[2].indexOf("e") !== -1 ? "ev" : "day")) + (o[2].indexOf("x") !== -1 ? " x" : "") + (dim(o) ? " dim" : "");
+        return '<div class="bar ' + cls + '" style="left:' + l.toFixed(3) + '%;width:' + wd.toFixed(3) + '%" title="' + esc(TERMS[o[0]].label + ": " + o[1] + (o[2].indexOf("x") !== -1 ? " (cancelled)" : "")) + '">' + esc(o[1]) + '</div>';
+      }).join("");
+      var tags = r.c.emph.map(function (e) { return EMPHS[e.id].short + (e.role === "M" ? "*" : ""); }).join(", ");
+      html += '<div class="g-row"><div class="g-label" title="' + esc(tags ? "Emphases: " + tags + " (* = main course)" : "") + '"><span class="code">' + (picks[r.c.id] ? "★ " : "") + esc(r.c.code) + '</span><span class="t">' + ttl(r.c) + '</span></div><div class="g-track" style="background:' + bg + '">' + bars + '</div></div>';
+    });
+  });
+  html += '</div></div>';
+  if (!shown) return '<p class="empty">Nothing to chart with these filters.</p>';
+  html += '<div class="gleg"><span><span class="bar ev"></span>Evening or weekend</span><span><span class="bar day"></span>Daytime</span><span><span class="bar past"></span>Ran earlier in 2026</span><span><span class="bar x"></span>Cancelled</span><span style="color:var(--star);font-weight:600">| Today</span></div>';
+  html += '<p class="prereq" style="margin-top:8px">A bar covers the whole term window, not the exact class dates. Hover a bar or switch to Catalog for days and times. Summer and Fall 2027 are not published yet; the outlined 2026 bars are the best guess.' + (hidden ? ' ' + hidden + ' matching courses have no scheduled term yet and are not shown.' : '') + ' Spring 2026 global and experiential offerings are only in the Catalog view.</p>';
+  return html;
+}
+
+/* Course detail dialog, fed by Rotman course fact sheets (FACTS, keyed by course number). */
+var TERMSLUG = { "Spring 2027": "spring-2027", "Winter intensive 2027": "wit-2027", "Fall 2026": "fall-2026", "Summer 2026": "summer-2026", "Summer intensive 2026": "sit-2026", "Fall intensive 2026": "fit-2026" };
+function ttl(c) { return c.num ? '<button type="button" class="ttl" data-open="' + c.num + '" title="Open course details">' + esc(c.title) + '</button>' : esc(c.title); }
+function lnkW(id) { return '<button type="button" class="ttl" data-open="' + WIT[id].num + '" title="Open course details">' + esc(WIT[id].name) + '</button>'; }
+function parseEv(s) {
+  if (!s) return [];
+  return s.split("; ").map(function (p) {
+    var m = p.match(/^(.*?)\s+(\d+(?:\.\d+)?(?:-\d+(?:\.\d+)?)?%)(?:\s+each)?\s*(\(.*\))?$/);
+    if (!m) return { name: p, w: "", num: 0, note: "" };
+    return { name: m[1], w: m[2], num: parseFloat(m[2]), note: (m[3] || "").replace(/^\(|\)$/g, "") };
+  });
+}
+function msec(h, body) { return body ? '<div class="msec"><h3>' + h + '</h3>' + body + '</div>' : ""; }
+var openNum = "";
+function openFact(num) {
+  var c = courseByNum(num), f = FACTS[num];
+  if (!c) return;
+  openNum = num;
+  var h = '<h2 id="mt">' + esc(c.title) + '</h2>';
+  h += '<div class="msub"><span>' + esc(c.code) + '</span><span>' + esc(AREA_NAME[c.area]) + '</span>' + (f ? '<span>Instructor: ' + esc(f.w || "not listed") + '</span>' : "") + '</div>';
+  if (c.emph.length) h += '<div class="badges">' + c.emph.map(function (e) { return '<span class="b em hl" title="' + esc(EMPHS[e.id].name) + '">' + esc(EMPHS[e.id].short) + (e.role === "M" ? " (main)" : " (supplemental)") + '</span>'; }).join("") + '</div>';
+  if (f) {
+    h += msec("Summary", f.s ? '<p>' + esc(f.s) + '</p>' : '<p class="muted">No summary on the fact sheet.</p>');
+    var ev = parseEv(f.e);
+    var grade = ev.length ? '<div class="gr">' + ev.map(function (x) {
+      var bar = x.num ? '<div class="br"><i style="width:' + Math.min(100, x.num) + '%"></i></div>' : "";
+      return '<div class="it"><span class="nm">' + esc(x.name) + '</span><span class="wt">' + esc(x.w) + '</span>' + bar + (x.note ? '<span class="nt">' + esc(x.note) + '</span>' : "") + '</div>';
+    }).join("") + '</div>' : '<p class="muted">Not listed on the fact sheet.</p>';
+    h += '<div class="mgrid">' + msec("Format and schedule", f.f ? '<p>' + esc(f.f) + '</p>' : '<p class="muted">Not listed on the fact sheet.</p>') + msec("Who it is for", f.a ? '<p>' + esc(f.a) + '</p>' : '<p class="muted">Not listed on the fact sheet.</p>') + '</div>';
+    h += msec("Grading and assessment", grade);
+    h += '<div class="mgrid">' + msec("Required resources", f.r ? '<p>' + esc(f.r) + '</p>' : '<p class="muted">Not listed on the fact sheet.</p>') + msec("Prerequisite note", f.p ? '<p>' + esc(f.p) + '</p>' : "") + '</div>';
+  } else {
+    h += '<p class="muted">Rotman has not published a fact sheet for this course yet, so there is no summary, grading or format to show. Schedules below come from the current offerings page.</p>';
+  }
+  var offs = offersFor(c).slice().sort(function (a, b) { return TERM_ORDER.indexOf(a[0]) - TERM_ORDER.indexOf(b[0]); });
+  if (offs.length) h += msec("When it runs", '<div class="det" style="font-size:13.5px;display:grid;gap:2px">' + offs.map(function (o) {
+    return '<div>' + TERMS[o[0]].label + ': ' + esc(o[1]) + (o[2].indexOf("e") !== -1 ? '<span class="e" style="color:var(--ok-fg);background:var(--ok-bg);border-radius:3px;padding:0 5px;font-size:11px;margin-left:6px">evening/weekend</span>' : "") + (o[2].indexOf("x") !== -1 ? '<span style="color:var(--warn-fg);background:var(--warn-bg);border-radius:3px;padding:0 5px;font-size:11px;margin-left:6px">cancelled</span>' : "") + '</div>';
+  }).join("") + '</div>');
+  var on = !!picks[c.id];
+  h += '<div class="mfoot">' + (c.core ? '<span>In your core this term</span>' : '<button type="button" class="mstar" id="mstar" aria-pressed="' + on + '">' + (on ? "★ In my list" : "☆ Add to my list") + '</button>');
+  if (f) {
+    var slug = TERMSLUG[f.t];
+    var url = "https://rotman.utoronto.ca/registrar/programs/mba-programs/mba-electives/course-fact-sheet-storage/rsm" + num + "h---" + slug + "/";
+    h += '<span>From the ' + esc(f.t) + ' fact sheet, shortened.</span><a href="' + url + '" target="_blank" rel="noopener">Full fact sheet</a>';
+  }
+  h += '</div>';
+  document.getElementById("mbody").innerHTML = h;
+  var m = document.getElementById("modal");
+  m.hidden = false;
+  m.scrollTop = 0;
+  document.getElementById("mclose").focus();
+}
+function closeFact() { document.getElementById("modal").hidden = true; openNum = ""; }
+
+/* Plan tab: winter intensive (Jan 11 to 24, 2027) combinations. Slots: WE weekend 9:00-16:00, AM weekdays 9:30-13:00, PM weekdays 13:30-17:00, EVE weekdays 18:00-21:30. */
+var WIT = {
+  negot:  { num: "2604", code: "MN", name: "Managerial Negotiations", slot: "WE", when: "Sat/Sun Jan 16, 17, 23, 24, 9:00-16:00" },
+  ibwe:   { num: "2123", code: "IB", name: "International Business in the World Economy", slot: "WE", when: "Sat/Sun Jan 16, 17, 23, 24, 9:00-16:00" },
+  socent: { num: "2081", code: "SE", name: "Social Entrepreneurship", slot: "WE", when: "Sat/Sun Jan 16, 17, 23, 24, 9:00-16:00" },
+  hbanks: { num: "2326", code: "HB", name: "How Banks Work", slot: "EVE", when: "Weeknights Jan 11-21, 18:00-21:30, exam Jan 22" },
+  sales:  { num: "2508", code: "SM", name: "Sales Management", slot: "EVE", when: "Weeknights Jan 11-22, 18:00-21:30" },
+  gid:    { num: "2913", code: "GD", name: "Getting it Done", slot: "AM", when: "Weekday mornings Jan 11-22, 9:30-13:00" },
+  redev:  { num: "2126", code: "RD", name: "Real Estate Development", slot: "PM", when: "Weekday afternoons Jan 11-22, 13:30-17:00" },
+  law:    { num: "2211", code: "BL", name: "Business Law", slot: "PM", when: "Weekday afternoons Jan 11-22, 13:30-17:00" }
+};
+var WIT_ORDER = ["negot", "ibwe", "socent", "hbanks", "sales", "gid", "redev", "law"];
+var DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+var ROWS3 = ["Morning", "Afternoon", "Evening"];
+var planSel = ["negot", "gid", "hbanks"];
+
+function wcells(id) {
+  var s = WIT[id].slot, a = [];
+  for (var i = 0; i < 14; i++) {
+    var we = (i % 7) >= 5;
+    if (s === "WE" && we) { a.push([i, 0]); a.push([i, 1]); }
+    if (!we && s === "AM") a.push([i, 0]);
+    if (!we && s === "PM") a.push([i, 1]);
+    if (!we && s === "EVE") a.push([i, 2]);
+  }
+  return a;
+}
+function wGrid(ids) {
+  var own = {}, conf = {};
+  ids.forEach(function (id, k) { wcells(id).forEach(function (c) { var key = c[0] + "|" + c[1]; (own[key] = own[key] || []).push(k); }); });
+  var h = '<div class="pgwrap"><table class="pgrid"><thead><tr><th></th>', i, r;
+  for (i = 0; i < 14; i++) h += '<th class="' + ((i % 7) >= 5 ? "we" : "") + '">' + DOW[i % 7] + '<br>' + (11 + i) + '</th>';
+  h += '</tr></thead><tbody>';
+  for (r = 0; r < 3; r++) {
+    h += '<tr><th class="rl">' + ROWS3[r] + '</th>';
+    for (i = 0; i < 14; i++) {
+      var o = own[i + "|" + r], we = (i % 7) >= 5 ? "we" : "";
+      if (!o) h += '<td class="' + we + '"></td>';
+      else if (o.length > 1) { h += '<td class="cf" title="Conflict">!</td>'; conf[o.join("-")] = o; }
+      else { var id = ids[o[0]]; h += '<td class="c' + (o[0] % 3) + '" title="' + esc(WIT[id].name + ": " + WIT[id].when) + '">' + WIT[id].code + '</td>'; }
+    }
+    h += '</tr>';
+  }
+  h += '</tbody></table></div>';
+  return { html: h, conflicts: Object.keys(conf).map(function (k) { return conf[k].map(function (x) { return WIT[ids[x]].name; }).join(" and "); }) };
+}
+function wLegend(ids) {
+  return '<div class="gleg">' + ids.map(function (id, k) { return '<span><span class="sw c' + (k % 3) + '"></span>' + WIT[id].code + ' = ' + esc(WIT[id].name) + '</span>'; }).join("") + '</div>';
+}
+function courseByNum(n) { return courses.filter(function (c) { return c.num === n; })[0]; }
+function empSum(ids) {
+  var m = {};
+  ids.forEach(function (id) { var c = courseByNum(WIT[id].num); if (!c) return; c.emph.forEach(function (e) { m[e.id] = m[e.id] || { M: 0, S: 0 }; m[e.id][e.role]++; }); });
+  var parts = EMPH_ORDER.filter(function (id) { return m[id]; }).map(function (id) {
+    var x = m[id];
+    return EMPHS[id].short + " " + (x.M ? x.M + " main" : "") + (x.M && x.S ? " + " : "") + (x.S ? x.S + " supplemental" : "");
+  });
+  return parts.length ? parts.join(", ") : "no emphasis";
+}
+var THREE = [
+  { t: "Lightest on your workday", ids: ["negot", "gid", "hbanks"], fit: "Weekday mornings and evenings, afternoons free for work, plus two full weekends.", watch: "Needs the Registrar to approve a third intensive. Mornings 9:30 to 13:00 mean about ten half-days off." },
+  { t: "Global and finance", ids: ["ibwe", "gid", "hbanks"], fit: "Same slots as the first plan. International Business is the Global Management main course.", watch: "International Business also ran in the Fall and Summer intensives, so it may come back without costing you this slot." },
+  { t: "Social impact", ids: ["socent", "gid", "sales"], fit: "Social Entrepreneurship is the Sustainability and Society main course, and it only appears in this window so far.", watch: "Sales Management and Getting it Done are supplemental for their emphases, so only one course here is a main." },
+  { t: "Real estate heavy", ids: ["redev", "hbanks", "socent"], fit: "Real Estate Development is a main course for Real Estate, How Banks Work counts toward Finance.", watch: "Heaviest option: 13:30 to 17:00 and 18:00 to 21:30 every weekday, so about two full weeks off work." },
+  { t: "Leadership with law", ids: ["law", "negot", "sales"], fit: "Managerial Negotiations is a Leadership main, Business Law is supplemental for Leadership and Real Estate.", watch: "Business Law needs Managerial Accounting, which you finish this fall. Afternoons off work for two weeks." }
+];
+function planCard(cb) {
+  var g = wGrid(cb.ids);
+  return '<article class="pl-card"><h3>' + esc(cb.t) + '</h3><p class="muted">' + cb.ids.map(function (n) { return lnkW(n); }).join(" + ") + '</p>' + g.html + wLegend(cb.ids) + '<p>' + esc(cb.fit) + '</p><p class="muted">Counts toward: ' + esc(empSum(cb.ids)) + '</p><p class="muted">' + esc(cb.watch) + '</p></article>';
+}
+function builderRes() {
+  var ids = WIT_ORDER.filter(function (id) { return planSel.indexOf(id) !== -1; });
+  if (!ids.length) return '<p class="muted">Tick up to three courses to see the schedule.</p>';
+  var g = wGrid(ids), h = g.html + wLegend(ids), pills = "";
+  pills += '<span class="pill ' + (ids.length > 2 ? "warn" : "ok") + '">' + ids.length + ' of 2 allowed per intensive</span>';
+  if (g.conflicts.length) pills += '<span class="pill warn">Conflict: ' + esc(g.conflicts.join("; ")) + '</span>';
+  else pills += '<span class="pill ok">No time conflicts</span>';
+  var day = ids.filter(function (id) { return WIT[id].slot === "AM" || WIT[id].slot === "PM"; }).length;
+  if (day) pills += '<span class="pill">' + day + ' weekday daytime course' + (day > 1 ? "s" : "") + ': time off work</span>';
+  return h + '<div class="tally" style="margin-top:8px">' + pills + '</div><p class="muted" style="margin:8px 0 0">Counts toward: ' + esc(empSum(ids)) + '</p>';
+}
+/* Whole-term plan: winter intensive plus Spring 2027 regular courses, one load. Times are decimal hours; a course with two sections lists both. */
+var SPR = {
+  "2016": [[[1, 13.75, 15.75]]], "2019": [[[1, 9.25, 11.25]]],
+  "2023": [[[1, 11.5, 13.5]], [[1, 16, 18]]], "2030": [[[2, 13.75, 15.75]]],
+  "2054": [[[1, 18.5, 20.5]]], "2125": [[[3, 18.5, 20.5]]], "2130": [[[3, 16, 18]]],
+  "2209": [[[3, 16, 18]], [[3, 18.5, 20.5]]], "2301": [[[1, 18.5, 20.5]]],
+  "2303": [[[2, 11.5, 13.5]]], "2308": [[[2, 18.5, 21.5]]],
+  "2309": [[[1, 11.5, 13.5]], [[1, 16, 18]]], "2319": [[[0, 18.5, 20.5]]],
+  "2408": [[[0, 9.25, 11.25]]], "2409": [[[2, 14, 16]]], "2504": [[[2, 16.25, 18.25]]],
+  "2506": [[[0, 11.5, 13.5]]], "2512": [[[1, 18.5, 20.5]]], "2527": [[[0, 16, 18]]],
+  "2619": [[[3, 11.5, 13.5]], [[2, 18.5, 21.5]]]
+};
+var SPR_BLOCK = {
+  "2604": "Weekends Feb 6, 7, 20, 21 or Mar 13, 14, 20, 21",
+  "2618": "Fri and Sat Feb 26, 27, Mar 5, 6",
+  "2640": "Thu evening Jan 28, Feb 4 plus Sat and Sun Jan 30, 31, Feb 6"
+};
+var SPR_ORDER = Object.keys(SPR).concat(Object.keys(SPR_BLOCK)).sort();
+var wt = { w: ["negot", "hbanks"], s: ["2619", "2640"] };
+var WT_PRE = [
+  { t: "Leadership track, evenings and weekends only", w: ["negot", "hbanks"], s: ["2619", "2640"], note: "Two Leadership mains (Negotiations and 2619) plus a supplemental. No weekday daytime class in the whole term." },
+  { t: "Finance track, no time off", w: ["negot", "hbanks"], s: ["2209", "2301"], note: "A Finance main on Thursday night, a supplemental on Tuesday night, and How Banks Work in the intensive. Check the Finance emphasis count on the Catalog tab." },
+  { t: "Max load of 4, needs GPA of 3.2 or more", w: ["negot", "hbanks"], s: ["2619", "2209"], note: "Two intensives plus two weeknight courses, every class evening or weekend. Heaviest first six weeks of the year." }
+];
+function sName(n) { var c = courseByNum(n); return c ? c.title : "RSM" + n; }
+function sPlace(nums) {
+  var placed = [], conf = [];
+  nums.forEach(function (n) {
+    var secs = SPR[n]; if (!secs) return;
+    var pick = null, i;
+    for (i = 0; i < secs.length && !pick; i++) { if (!secs[i].some(function (b) { return placed.some(function (p) { return p.b[0] === b[0] && b[1] < p.b[2] && p.b[1] < b[2]; }); })) pick = secs[i]; }
+    var bad = !pick; if (!pick) pick = secs[0];
+    pick.forEach(function (b) { placed.push({ n: n, b: b, bad: bad }); });
+    if (bad) conf.push(sName(n));
+  });
+  return { placed: placed, conflicts: conf };
+}
+function sGrid(nums) {
+  var r = sPlace(nums), h = '<div class="pgwrap"><table class="pgrid"><thead><tr><th></th>', d, t;
+  ["Mon", "Tue", "Wed", "Thu", "Fri"].forEach(function (x) { h += '<th>' + x + '</th>'; });
+  h += '</tr></thead><tbody>';
+  for (t = 9; t < 22; t += 0.5) {
+    h += '<tr><th class="rl">' + (t % 1 === 0 ? t + ':00' : '') + '</th>';
+    for (d = 0; d < 5; d++) {
+      var hit = r.placed.filter(function (p) { return p.b[0] === d && t < p.b[2] && p.b[1] < t + 0.5; });
+      if (!hit.length) h += '<td></td>';
+      else if (hit.length > 1 || hit[0].bad) h += '<td class="cf" title="Conflict">!</td>';
+      else h += '<td class="c' + (nums.indexOf(hit[0].n) % 3) + '" title="' + esc(sName(hit[0].n)) + '">' + hit[0].n.slice(1) + '</td>';
+    }
+    h += '</tr>';
+  }
+  return { html: h + '</tbody></table></div>', conflicts: r.conflicts, placed: r.placed };
+}
+function empNums(nums) {
+  var m = {};
+  nums.forEach(function (n) { var c = courseByNum(n); if (!c) return; c.emph.forEach(function (e) { m[e.id] = m[e.id] || { M: 0, S: 0 }; m[e.id][e.role]++; }); });
+  var parts = EMPH_ORDER.filter(function (id) { return m[id]; }).map(function (id) {
+    var x = m[id];
+    return EMPHS[id].short + " " + (x.M ? x.M + " main" : "") + (x.M && x.S ? " + " : "") + (x.S ? x.S + " supplemental" : "");
+  });
+  return parts.length ? parts.join(", ") : "no emphasis";
+}
+function wtRes() {
+  var w = WIT_ORDER.filter(function (id) { return wt.w.indexOf(id) !== -1; });
+  var s = SPR_ORDER.filter(function (n) { return wt.s.indexOf(n) !== -1; });
+  var total = w.length + s.length;
+  if (!total) return '<p class="muted">Tick courses on both sides to see the whole term.</p>';
+  var pills = '<span class="pill ' + (total > 4 ? "warn" : total === 4 ? "" : "ok") + '">Term load ' + total + ' (3 normal, 4 with GPA 3.2 or more)</span>';
+  pills += '<span class="pill ' + (w.length > 2 ? "warn" : "ok") + '">' + w.length + ' of 2 intensive</span>';
+  var h = "";
+  if (w.length) { var g = wGrid(w); h += '<div class="sub-h">Winter intensive, Jan 11 to 24</div>' + g.html + wLegend(w); if (g.conflicts.length) pills += '<span class="pill warn">Winter conflict: ' + esc(g.conflicts.join("; ")) + '</span>'; }
+  var wk = s.filter(function (n) { return SPR[n]; }), bl = s.filter(function (n) { return SPR_BLOCK[n]; });
+  if (wk.length) {
+    var sg = sGrid(wk); h += '<div class="sub-h" style="margin-top:14px">Spring 2027 weekly, Jan 25 to Apr 16</div>' + sg.html;
+    h += '<div class="gleg">' + wk.map(function (n, k) { return '<span><span class="sw c' + (k % 3) + '"></span>' + n.slice(1) + ' = ' + esc(sName(n)) + '</span>'; }).join("") + '</div>';
+    if (sg.conflicts.length) pills += '<span class="pill warn">Spring conflict: ' + esc(sg.conflicts.join("; ")) + '</span>';
+    var day = wk.filter(function (n) { return !(SPR[n].some(function (sec) { return sec.every(function (b) { return b[1] >= 18.4; }); })); }).length;
+    if (day) pills += '<span class="pill">' + day + ' weekday daytime class' + (day > 1 ? "es" : "") + ': time off work</span>';
+  }
+  if (bl.length) h += '<div class="sub-h" style="margin-top:14px">Block courses</div><ul class="muted">' + bl.map(function (n) { return '<li>' + esc(sName(n)) + ': ' + esc(SPR_BLOCK[n]) + '</li>'; }).join("") + '</ul>';
+  var dup = w.filter(function (id) { return s.indexOf(WIT[id].num) !== -1; });
+  if (dup.length) pills += '<span class="pill warn">Same course in both periods: ' + esc(WIT[dup[0]].name) + '</span>';
+  if (!(pills.indexOf("conflict") !== -1)) pills += '<span class="pill ok">No time conflicts</span>';
+  var nums = w.map(function (id) { return WIT[id].num; }).concat(s);
+  return '<div class="tally" style="margin-bottom:8px">' + pills + '</div>' + h + '<p class="muted" style="margin:10px 0 0">Counts toward: ' + esc(empNums(nums)) + '</p>';
+}
+function wtHtml() {
+  var h = '<section class="area"><h2>Whole term plan<span class="range">Winter intensive + Spring 2027</span></h2>';
+  h += '<div class="pl-rule"><p><strong>Plan the two together: intensive courses count toward the Spring load.</strong> The winter intensive (Jan 11 to 24) and Spring classes (Jan 25 to Apr 16) share one cap of 3 courses, or 4 with a GPA of 3.2 or more.</p>';
+  h += '<p>I would take 3 in total: one weekend intensive plus two weeknight classes, or one weekend and one weeknight intensive plus one weeknight Spring class. That keeps every class outside working hours. A fourth course is only worth it if you want to finish an emphasis early, since Spring weekly classes run for 12 weeks on top of work.</p>';
+  h += '<p class="muted">Year-long courses (2013, 2312, 2702) are enrolled once in the Fall, so they are not listed here. Spring exams run Apr 19 to 26.</p></div>';
+  h += '<div class="sub-h">Starting points</div><div class="pl-cards">' + WT_PRE.map(function (p, i) {
+    return '<article class="pl-card"><h3>' + esc(p.t) + '</h3><p class="muted">Winter: ' + p.w.map(function (id) { return esc(WIT[id].name); }).join(", ") + '<br>Spring: ' + p.s.map(function (n) { return esc(sName(n)); }).join(", ") + '</p><p>' + esc(p.note) + '</p><button class="chip wtpre" data-i="' + i + '" type="button">Load into builder</button></article>';
+  }).join("") + '</div>';
+  h += '<div class="sub-h" style="margin-top:22px">Build your term</div><p class="muted" style="margin:0 0 6px">Winter intensive</p><div class="picker">' + WIT_ORDER.map(function (id) {
+    return '<label><input type="checkbox" class="wk" data-g="w" value="' + id + '"' + (wt.w.indexOf(id) !== -1 ? " checked" : "") + '> ' + esc(WIT[id].name) + '</label>';
+  }).join("") + '</div><p class="muted" style="margin:10px 0 6px">Spring 2027 regular term</p><div class="picker">' + SPR_ORDER.map(function (n) {
+    return '<label><input type="checkbox" class="wk" data-g="s" value="' + n + '"' + (wt.s.indexOf(n) !== -1 ? " checked" : "") + '> ' + esc(sName(n)) + '</label>';
+  }).join("") + '</div><div id="wtres" style="margin-top:12px">' + wtRes() + '</div></section>';
+  return h;
+}
+function planHtml() {
+  var h = wtHtml() + '<section class="area"><h2>Winter intensive only<span class="range">Jan 11 to 24, 2027</span></h2>';
+  h += '<div class="pl-rule"><p><strong>Rotman caps enrolment at 2 courses per intensive period.</strong> A third needs a separate request in Add/Drop Phase 2 and may be refused.</p>';
+  h += '<p>I would take two: one weekend course and one weeknight course. That is the only mix that fits around a job without time off. A third course has to be a weekday morning or afternoon class, which means about ten half-days off between Jan 11 and 22.</p>';
+  h += '<p>Rotman estimates 8 to 12 hours a day of coursework for two intensive courses. Winter intensive courses also count toward your Spring 2027 load of 3.</p>';
+  h += '<p>Three weekend courses share the same four days, both weeknight courses share the same evenings, and both afternoon courses share the same hours, so you can take at most one from each group. If you want just one weekend course, Social Entrepreneurship is the one to take here: in the listings so far, International Business and Managerial Negotiations also run in other terms.</p>';
+  h += '<p class="muted">Prerequisites are met for all eight if you passed the Year 1 core, except Business Law, which needs Managerial Accounting (you finish it this fall).</p></div>';
+  h += '<div class="sub-h">Two courses, within the cap</div><div class="pwrap"><table class="ptable"><thead><tr><th>Weekend</th><th>Weeknight</th><th>Counts toward</th></tr></thead><tbody>';
+  ["socent", "ibwe", "negot"].forEach(function (w) { ["hbanks", "sales"].forEach(function (e) {
+    h += '<tr><td>' + lnkW(w) + '</td><td>' + lnkW(e) + '</td><td>' + esc(empSum([w, e])) + '</td></tr>';
+  }); });
+  h += '</tbody></table></div>';
+  h += '<div class="sub-h" style="margin-top:22px">Three courses, needs approval</div><div class="pl-cards">' + THREE.map(planCard).join("") + '</div>';
+  h += '<div class="sub-h" style="margin-top:22px">Try your own</div><div class="picker" id="picker">' + WIT_ORDER.map(function (id) {
+    return '<label><input type="checkbox" class="pk" value="' + id + '"' + (planSel.indexOf(id) !== -1 ? " checked" : "") + '> ' + esc(WIT[id].name) + '</label>';
+  }).join("") + '</div><div id="pbres">' + builderRes() + '</div></section>';
+  return h;
+}
+
+/* Sorting. "area" keeps the grouped layout; every other sort shows one flat list. */
+function numOf(c) { return c.num ? parseInt(c.num, 10) : 99999; }
+function minRank(c) {
+  var live = liveOffers(c);
+  if (!live.length) return 99;
+  return Math.min.apply(null, live.map(function (o) { return TERM_ORDER.indexOf(o[0]); }));
+}
+function roleScore(c) {
+  var hit = c.emph.filter(function (e) { return e.id === state.emph; })[0];
+  return hit ? (hit.role === "M" ? 0 : 1) : 2;
+}
+function ordered(list) {
+  if (state.sort === "area") return list;
+  var k = state.sort;
+  return list.slice().sort(function (a, b) {
+    var d = 0;
+    if (k === "title") d = a.title.localeCompare(b.title);
+    else if (k === "term") d = minRank(a) - minRank(b);
+    else if (k === "emph") d = state.emph !== "any" ? roleScore(a) - roleScore(b) : b.emph.length - a.emph.length;
+    return d || numOf(a) - numOf(b) || a.title.localeCompare(b.title);
+  });
+}
+
+/* Emphasis progress panel, shown when an emphasis is selected. */
+function emphBox() {
+  if (state.emph === "any") return "";
+  var m = EMPHS[state.emph];
+  var members = courses.filter(function (c) { return !c.core && c.emph.some(function (e) { return e.id === state.emph; }); });
+  var picked = 0, mains = 0;
+  members.forEach(function (c) {
+    if (!picks[c.id]) return;
+    var w = c.num === "2013" ? 2 : 1;
+    picked += w;
+    if (c.emph.some(function (e) { return e.id === state.emph && e.role === "M"; })) mains += w;
+  });
+  var upcoming = members.filter(function (c) { return liveOffers(c).some(function (o) { return TERMS[o[0]].g !== "past"; }); });
+  var upEve = upcoming.filter(function (c) { return liveOffers(c).some(function (o) { return TERMS[o[0]].g !== "past" && o[2].indexOf("e") !== -1; }); });
+  var done = picked >= 5 && mains >= m.minMain;
+  var h = '<div class="ebox"><h3>' + esc(m.name) + '</h3>';
+  h += '<p>Needs 5 electives (2.5 FCE), at least ' + m.minMain + ' from the main list. ' + m.main.length + ' main and ' + m.supp.length + ' supplemental courses are eligible.</p>';
+  h += '<div class="tally"><span class="pill ' + (done ? "ok" : "") + '">' + picked + ' of 5 starred</span><span class="pill ' + (mains >= m.minMain ? "ok" : "") + '">' + mains + ' of ' + m.minMain + ' main starred</span></div>';
+  h += '<p class="muted">Scheduled in Fall 2026, Winter or Spring 2027: ' + upcoming.length + ' of ' + members.length + ' courses, ' + upEve.length + ' of them evening or weekend. Nothing is published yet for Summer 2027 onward.</p>';
+  if (m.extra) h += '<p class="muted">' + esc(m.extra) + '</p>';
+  return h + '</div>';
+}
+
+function render() {
+  renderChips(); renderTally();
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (t) { t.setAttribute("aria-selected", String(t.getAttribute("data-view") === state.view)); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-f]"), function (n) { n.hidden = state.view === "plan"; });
+  if (state.view === "plan") { out.innerHTML = planHtml(); return; }
+  var box = emphBox();
+  if (state.view === "timeline") { out.innerHTML = box + gantt(); return; }
+  var html = "";
+  if (state.sort !== "area") {
+    var flat = ordered(courses.filter(match));
+    showArea = true;
+    html = flat.length ? '<section class="area"><h2>Sorted by ' + esc(SORTS[state.sort].toLowerCase()) + '<span class="range">' + flat.length + ' courses</span></h2><ul class="list">' + flat.map(item).join("") + '</ul></section>' : "";
+    showArea = false;
+    out.innerHTML = box + (html || '<p class="empty">' + (state.area === "list" ? "Nothing starred yet. Star a course to add it to your list." : "No courses match these filters.") + '</p>');
+    return;
+  }
+  AREAS.forEach(function (a) {
+    var list = courses.filter(function (c) { return c.area === a.id && match(c); });
+    if (!list.length) return;
+    html += '<section class="area"><h2>' + esc(a.name) + '<span class="range">' + a.range + ' · ' + list.length + ' courses</span></h2>';
+    if (a.pre) html += '<p class="prereq">' + esc(a.pre) + '</p>';
+    if (a.g) {
+      html += '<div class="global-note"><p>At most 2 RSM27XX courses count toward your degree. More can be taken as EXTra courses, which do not count. All are graded Honours/Pass/Fail and stay out of your GPA.</p><p>January global practicum trips (Singapore, Costa Rica, Las Vegas) make you ineligible for winter intensive electives. Practicums need a deposit and your own visa and travel planning.</p></div>';
+      ["Global", "Experiential"].forEach(function (k) {
+        var sub = list.filter(function (c) { return c.kind === k; });
+        if (sub.length) html += '<div class="sub-h">' + k + '</div><ul class="list">' + sub.map(item).join("") + '</ul>';
+      });
+    } else {
+      html += '<ul class="list">' + list.map(item).join("") + '</ul>';
+    }
+    html += '</section>';
+  });
+  out.innerHTML = box + (html || '<p class="empty">' + (state.area === "list" ? "Nothing starred yet. Star a course to add it to your list." : "No courses match these filters.") + '</p>');
+}
+
+(function initSelects() {
+  var e = document.getElementById("emph"), s = document.getElementById("sort");
+  e.innerHTML = '<option value="any">All emphases</option>' + EMPH_ORDER.map(function (id) {
+    var n = courses.filter(function (c) { return !c.core && c.emph.some(function (x) { return x.id === id; }); }).length;
+    return '<option value="' + id + '">' + esc(EMPHS[id].name) + ' (' + n + ')</option>';
+  }).join("");
+  s.innerHTML = Object.keys(SORTS).map(function (k) { return '<option value="' + k + '">' + esc(SORTS[k]) + '</option>'; }).join("");
+  e.addEventListener("change", function () { state.emph = e.value; render(); });
+  s.addEventListener("change", function () { state.sort = s.value; render(); });
+})();
+
+document.getElementById("q").addEventListener("input", function (e) { state.q = e.target.value.trim(); render(); });
+chips.addEventListener("click", function (e) {
+  var b = e.target.closest(".chip"); if (!b) return;
+  state.area = b.getAttribute("data-area"); render();
+});
+document.getElementById("terms").addEventListener("click", function (e) {
+  var b = e.target.closest(".chip"); if (!b) return;
+  state.term = b.getAttribute("data-term"); render();
+});
+document.querySelector(".tabs").addEventListener("click", function (e) {
+  var b = e.target.closest(".tab"); if (!b) return;
+  state.view = b.getAttribute("data-view"); render();
+});
+document.getElementById("eve").addEventListener("change", function (e) { state.eve = e.target.checked; render(); });
+document.addEventListener("click", function (e) {
+  var t = e.target;
+  var b = t.closest ? t.closest("[data-open]") : null;
+  if (b) { openFact(b.getAttribute("data-open")); return; }
+  if (t.id === "mclose" || t.id === "modal") { closeFact(); return; }
+  if (t.id === "mstar" && openNum) {
+    var c = courseByNum(openNum);
+    if (c) { if (picks[c.id]) delete picks[c.id]; else picks[c.id] = 1; save(); render(); openFact(openNum); }
+  }
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("modal").hidden) closeFact(); });
+out.addEventListener("change", function (e) {
+  var k = e.target.closest ? e.target.closest(".wk") : null;
+  if (k) {
+    var arr = wt[k.getAttribute("data-g")], j = arr.indexOf(k.value);
+    if (k.checked && j === -1) arr.push(k.value);
+    if (!k.checked && j !== -1) arr.splice(j, 1);
+    document.getElementById("wtres").innerHTML = wtRes(); return;
+  }
+  var b = e.target.closest ? e.target.closest(".pk") : null; if (!b) return;
+  var id = b.value, i = planSel.indexOf(id);
+  if (b.checked && i === -1) planSel.push(id);
+  if (!b.checked && i !== -1) planSel.splice(i, 1);
+  document.getElementById("pbres").innerHTML = builderRes();
+});
+out.addEventListener("click", function (e) {
+  var pre = e.target.closest ? e.target.closest(".wtpre") : null;
+  if (pre) { var p = WT_PRE[+pre.getAttribute("data-i")]; wt.w = p.w.slice(); wt.s = p.s.slice(); render(); return; }
+  var b = e.target.closest(".star"); if (!b || b.disabled) return;
+  var id = b.getAttribute("data-id");
+  if (picks[id]) delete picks[id]; else picks[id] = 1;
+  save(); render();
+});
+
+document.documentElement.setAttribute("data-theme", "light");
+
+render();
+</script>
+
+</body>
+</html>
