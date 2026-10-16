@@ -93,6 +93,14 @@ section.area h2 .range { font-family: var(--mono); font-size: calc(12px * var(--
 .det .e { color: var(--ok-fg); background: var(--ok-bg); border-radius: 3px; padding: 0 5px; font-size: calc(12px * var(--z)); margin-left: 4px; }
 .det .cx { color: var(--warn-fg); background: var(--warn-bg); border-radius: 3px; padding: 0 5px; font-size: calc(12px * var(--z)); margin-left: 4px; }
 .sel { font: inherit; font-size: calc(13px * var(--z)); padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); max-width: 100%; min-width: 0; }
+.ms { position: relative; }
+.ms summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 8px; }
+.ms summary::-webkit-details-marker { display: none; }
+.ms summary::after { content: "\25BE"; }
+.msmenu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; min-width: 280px; max-width: 92vw; max-height: 60vh; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+.msmenu label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: calc(14px * var(--z)); }
+.msmenu label:hover { background: var(--accent-soft); }
+.msmenu .clr { margin: 4px 8px 6px; }
 .sel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .b.em { background: transparent; border-color: var(--line); color: var(--muted); font-family: var(--body); }
 .b.em.hl { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); }
@@ -212,7 +220,7 @@ footer a { color: var(--accent); }
     </div>
     <div class="row" data-f id="chips" role="group" aria-label="Filter by area"></div>
     <div class="row" data-f role="group" aria-label="Filter by term"><span class="lbl">Offered</span><span class="row" id="terms" style="gap:8px"></span><label class="eve" for="eve"><input type="checkbox" id="eve"> Evening or weekend only</label></div>
-    <div class="row" data-f role="group" aria-label="Emphasis and sort"><label class="lbl" for="emph">Emphasis</label><select class="sel" id="emph"></select><label class="lbl" for="sort" style="margin-left:10px">Sort by</label><select class="sel" id="sort"></select></div>
+    <div class="row" data-f role="group" aria-label="Emphasis and sort"><span class="lbl" id="emphlbl">Emphasis</span><details class="ms" id="emph"><summary class="sel" aria-labelledby="emphlbl"><span id="emphtxt">All emphases</span></summary><div class="msmenu" id="emphmenu"></div></details><label class="lbl" for="sort" style="margin-left:10px">Sort by</label><select class="sel" id="sort"></select></div>
     <div class="tally" id="tally" aria-live="polite"></div>
   </div>
 
@@ -421,7 +429,7 @@ var picks = {};
 try { picks = JSON.parse(localStorage.getItem("rotman-picks") || "{}"); } catch (e) { picks = {}; }
 function save() { try { localStorage.setItem("rotman-picks", JSON.stringify(picks)); } catch (e) {} }
 
-var state = { q: "", area: "all", term: "any", eve: false, view: "list", emph: "any", sort: "area" };
+var state = { q: "", area: "all", term: "any", eve: false, view: "list", emph: [], sort: "area" };
 var showArea = false;
 var TERM_FILTERS = [
   { id: "any", name: "Any time" },
@@ -475,7 +483,7 @@ function termCount(id) {
 function match(c) {
   if (state.area === "list") { if (!picks[c.id]) return false; }
   else if (state.area !== "all" && c.area !== state.area) return false;
-  if (state.emph !== "any" && !c.emph.some(function (e) { return e.id === state.emph; })) return false;
+  if (state.emph.length && !c.emph.some(function (e) { return state.emph.indexOf(e.id) !== -1; })) return false;
   var live = liveOffers(c);
   if (state.term === "none") { if (live.length || c.core) return false; }
   else {
@@ -514,7 +522,7 @@ function item(c) {
   }
   var em = c.emph.length ? '<div class="badges">' + c.emph.map(function (e) {
     var m = EMPHS[e.id];
-    return '<span class="b em' + (state.emph === e.id ? " hl" : "") + '" title="' + esc(m.name + (e.role === "M" ? " (main course)" : " (supplemental course)")) + '">' + esc(m.short) + (e.role === "M" ? " (main)" : "") + '</span>';
+    return '<span class="b em' + (state.emph.indexOf(e.id) !== -1 ? " hl" : "") + '" title="' + esc(m.name + (e.role === "M" ? " (main course)" : " (supplemental course)")) + '">' + esc(m.short) + (e.role === "M" ? " (main)" : "") + '</span>';
   }).join("") + '</div>' : "";
   var areaLine = showArea ? '<div class="prereq" style="margin:2px 0 0">' + esc(AREA_NAME[c.area]) + '</div>' : "";
   return '<li style="align-items:flex-start"><span class="code" style="padding-top:2px">' + esc(c.code) + '</span><span class="title">' + ttl(c) + note + areaLine + badges + em + det + '</span>' + tag + star + '</li>';
@@ -855,8 +863,8 @@ function minRank(c) {
   return Math.min.apply(null, live.map(function (o) { return TERM_ORDER.indexOf(o[0]); }));
 }
 function roleScore(c) {
-  var hit = c.emph.filter(function (e) { return e.id === state.emph; })[0];
-  return hit ? (hit.role === "M" ? 0 : 1) : 2;
+  var hits = c.emph.filter(function (e) { return state.emph.indexOf(e.id) !== -1; });
+  return hits.some(function (e) { return e.role === "M"; }) ? 0 : hits.length ? 1 : 2;
 }
 function ordered(list) {
   if (state.sort === "area") return list;
@@ -865,22 +873,22 @@ function ordered(list) {
     var d = 0;
     if (k === "title") d = a.title.localeCompare(b.title);
     else if (k === "term") d = minRank(a) - minRank(b);
-    else if (k === "emph") d = state.emph !== "any" ? roleScore(a) - roleScore(b) : b.emph.length - a.emph.length;
+    else if (k === "emph") d = state.emph.length ? roleScore(a) - roleScore(b) : b.emph.length - a.emph.length;
     return d || numOf(a) - numOf(b) || a.title.localeCompare(b.title);
   });
 }
 
 /* Emphasis progress panel, shown when an emphasis is selected. */
-function emphBox() {
-  if (state.emph === "any") return "";
-  var m = EMPHS[state.emph];
-  var members = courses.filter(function (c) { return !c.core && c.emph.some(function (e) { return e.id === state.emph; }); });
+function emphBox() { return state.emph.map(emphBox1).join(""); }
+function emphBox1(eid) {
+  var m = EMPHS[eid];
+  var members = courses.filter(function (c) { return !c.core && c.emph.some(function (e) { return e.id === eid; }); });
   var picked = 0, mains = 0;
   members.forEach(function (c) {
     if (!picks[c.id]) return;
     var w = c.num === "2013" ? 2 : 1;
     picked += w;
-    if (c.emph.some(function (e) { return e.id === state.emph && e.role === "M"; })) mains += w;
+    if (c.emph.some(function (e) { return e.id === eid && e.role === "M"; })) mains += w;
   });
   var upcoming = members.filter(function (c) { return liveOffers(c).some(function (o) { return TERMS[o[0]].g !== "past"; }); });
   var upEve = upcoming.filter(function (c) { return liveOffers(c).some(function (o) { return TERMS[o[0]].g !== "past" && o[2].indexOf("e") !== -1; }); });
@@ -1000,14 +1008,27 @@ function render() {
   out.innerHTML = box + (html || '<p class="empty">' + (state.area === "list" ? "Nothing starred yet. Star a course to add it to your list." : "No courses match these filters.") + '</p>');
 }
 
+function syncEmph() {
+  Array.prototype.forEach.call(document.querySelectorAll(".emc"), function (b) { b.checked = state.emph.indexOf(b.value) !== -1; });
+  var n = state.emph.length;
+  document.getElementById("emphtxt").textContent = n === 0 ? "All emphases" : n === 1 ? EMPHS[state.emph[0]].name : n + " emphases selected";
+}
 (function initSelects() {
-  var e = document.getElementById("emph"), s = document.getElementById("sort");
-  e.innerHTML = '<option value="any">All emphases</option>' + EMPH_ORDER.map(function (id) {
+  var e = document.getElementById("emphmenu"), s = document.getElementById("sort");
+  e.innerHTML = '<button type="button" class="chip clr" id="emphclr">Clear selection</button>' + EMPH_ORDER.map(function (id) {
     var n = courses.filter(function (c) { return !c.core && c.emph.some(function (x) { return x.id === id; }); }).length;
-    return '<option value="' + id + '">' + esc(EMPHS[id].name) + ' (' + n + ')</option>';
+    return '<label><input type="checkbox" class="emc" value="' + id + '"> ' + esc(EMPHS[id].name) + ' (' + n + ')</label>';
   }).join("");
   s.innerHTML = Object.keys(SORTS).map(function (k) { return '<option value="' + k + '">' + esc(SORTS[k]) + '</option>'; }).join("");
-  e.addEventListener("change", function () { state.emph = e.value; render(); });
+  e.addEventListener("change", function () {
+    state.emph = EMPH_ORDER.filter(function (id) { return e.querySelector('.emc[value="' + id + '"]').checked; });
+    syncEmph(); render();
+  });
+  e.addEventListener("click", function (ev) {
+    if (ev.target.id !== "emphclr") return;
+    state.emph = []; syncEmph(); render();
+  });
+  document.addEventListener("click", function (ev) { var d = document.getElementById("emph"); if (d.open && !d.contains(ev.target)) d.open = false; });
   s.addEventListener("change", function () { state.sort = s.value; render(); });
 })();
 
@@ -1054,7 +1075,7 @@ out.addEventListener("change", function (e) {
 });
 out.addEventListener("click", function (e) {
   var hg = e.target.closest ? e.target.closest(".hgo") : null;
-  if (hg) { state.emph = hg.getAttribute("data-e"); state.view = "list"; document.getElementById("emph").value = state.emph; render(); window.scrollTo(0, 0); return; }
+  if (hg) { state.emph = [hg.getAttribute("data-e")]; state.view = "list"; syncEmph(); render(); window.scrollTo(0, 0); return; }
   if (e.target.id === "hreset") { hans = {}; hsave(); render(); return; }
   var pre = e.target.closest ? e.target.closest(".wtpre") : null;
   if (pre) { var p = WT_PRE[+pre.getAttribute("data-i")]; wt.w = p.w.slice(); wt.s = p.s.slice(); render(); return; }
